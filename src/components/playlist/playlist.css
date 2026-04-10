@@ -1,0 +1,117 @@
+.playlist{
+    width: 100%;
+    min-height: 100%;
+    height: 100%;
+    overflow-y: auto;
+}
+
+.playlist .firstpage{
+    width: 100%;
+    height: calc(100% - 140px);
+    min-height: 500px;
+    /* background: radial-gradient(rgb(232, 58, 58) 0%, transparent 68%);
+    background-size: 250% 250%;
+    background-position: 50% 100%; */
+    background: radial-gradient(rgb(232, 58, 58) 0%, transparent 34%);
+    background-size: 500% 500%;
+    background-position: 50% 100%;
+    background-position: 50% 68%;
+    position: relative;
+    overflow: hidden;
+    transition: 0.5s;
+}
+.playlist .firstpage .thumbnail{
+    width: 38.4%;
+    max-width: 500px;
+    min-width: 200px;
+    min-height: 200px;
+    aspect-ratio: 1 / 1;
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%,-50%);
+    box-shadow: 0 0 50px -13px black;
+}
+/*info-------------------------------------------------------*/
+.playlist .firstpage .info{
+    display: flex;
+    flex-direction: column;
+    color: white;
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    padding: 20px;
+    transition: 0.2s;
+
+}
+.playlist .firstpage .info .options{
+    display: flex;
+}
+.playlist .firstpage .info .title{
+    font-size: 26px;
+    font-weight: 800;
+}
+.playlist .firstpage .info .desc{
+    font-size: 15px;
+}
+.playlist .firstpage .info .playlistInfo{
+    font-size: 13px;
+}
+
+
+.playlist .firstpage .options{
+    padding-top: 20px;
+}
+.playlist .firstpage .options .opt{
+    padding: 10px;
+    transition: 0.1s;
+}
+.playlist .firstpage .options .opt:hover{
+    --color:white;
+    transform: scale(1.02);
+}
+.playlist .firstpage .options .opt.like{
+    padding-left: 0;
+}
+
+
+.playlist .firstpage .info .options .title,
+.playlist .firstpage .info .options .desc{
+    padding-bottom: 10px;
+}
+.playlist .firstpage .outer-btn{
+    position: absolute;
+    bottom: 0;
+    right: 0;
+    transition: 0.2s;
+}
+.playlist .firstpage .playbtn{
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    padding: 10px;
+    background-color: #1ed760;
+    --color:black;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-right: 30px;
+    margin-bottom: 20px;
+}
+
+/*additional features*/
+
+.hide .playlist .firstpage,
+ .playlist .firstpage.hide{
+    background-position: 50% 100%;
+}
+
+.hide .playlist .firstpage .info,
+.playlist .firstpage .info.hide{
+    transform: translate(-100%);
+}
+
+.hide .playlist .firstpage .outer-btn,
+.playlist .firstpage .outer-btn.hide{
+    transform: translate(100%,0);
+}
