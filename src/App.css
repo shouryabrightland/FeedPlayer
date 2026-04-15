@@ -4,9 +4,12 @@
 }
 body,
 #root{
+  --grey:rgb(179, 179, 179);
+  --black:rgb(32, 32, 32);
+  --color:var(--grey);
   width: 100vw;
   height: 100vh;
-  background-color: rgb(32, 32, 32);
+  background-color: var(--black) ;
 }
 
 .app{
@@ -22,8 +25,6 @@ body,
   max-height: 700px;
   overflow: hidden;
   background-color: rgb(19, 19, 19);
-  --grey:rgb(179, 179, 179);
-  --color:var(--grey);
   
 }
 @media (max-width:800px) {

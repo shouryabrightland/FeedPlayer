@@ -1,20 +1,40 @@
 import "./playlist.css"
 import List from "./list"
+import Song from "../song.class"
 
-function Playlist() {
+function Playlist(prop) {
+    const CONFIG = prop.config || {}
+    const KEY = prop.k || ""
+    const title = CONFIG.title || null
+    const Description = CONFIG.description || null
+    const thumbnail_url = CONFIG.thumbnail || null
+
+    /** @type {Song[]} */
+    const list = CONFIG["song_list"] || []
+
+    /**@type {PlayerState}*/
+    const state = prop.playstate
+    console.log("config",CONFIG,prop)
     return (
         <div className="playlist">
             <div className='firstpage'>
-                <div className="thumbnail"></div>
+                <div className="thumbnail">
+                    {(()=>{
+                        if (thumbnail_url) return (<img src={KEY+thumbnail_url}/>)
+                        else return <></>
+                    })()}
+                </div>
                 <div class="outer-btn">
-                    <div className="playbtn">
+                    <div className="playbtn" onClick={()=>{
+                        state.play(list[0])
+                    }}>
                         <svg className="icon" viewBox="0 0 24 24"><path d="m7.05 3.606 13.49 7.788a.7.7 0 0 1 0 1.212L7.05 20.394A.7.7 0 0 1 6 19.788V4.212a.7.7 0 0 1 1.05-.606"></path></svg>
                     </div>
                 </div>
 
                 <div className="info">
-                    <div className="pt1 title">Tilte</div>
-                    <div className="pt1 desc">Description</div>
+                    <div className="pt1 title">{title}</div>
+                    <div className="pt1 desc">{Description}</div>
                     <div className="pt2 playlistInfo">2 songs <span className="dot"></span> 5 min</div>
                     <div className="options">
 
@@ -36,7 +56,7 @@ function Playlist() {
                     </div>
                 </div>
             </div>
-            <List />
+            <List list={list} k={KEY} playstate = {state}/>
         </div>
     )
 }

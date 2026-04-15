@@ -31,6 +31,11 @@
     top: 50%;
     transform: translate(-50%,-50%);
     box-shadow: 0 0 50px -13px black;
+    object-fit: cover;
+}
+.playlist .firstpage .thumbnail > *{
+    width: 100%;
+    height: 100%;
 }
 /*info-------------------------------------------------------*/
 .playlist .firstpage .info{
@@ -42,6 +47,7 @@
     left: 0;
     padding: 20px;
     transition: 0.2s;
+    text-shadow: 0 0 10px black;
 
 }
 .playlist .firstpage .info .options{

@@ -4,45 +4,43 @@ import Playlist from './components/playlist/playlist';
 import Navbar from './components/navbar';
 import Footer from './components/footer';
 import Player from './components/player/player';
+import Song from './components/song.class';
+import PlayerState from './components/PlayerState.class';
 
+import { useState, useEffect } from 'react';
+import Login from './components/login/login';
 
 function App() {
+  const [KEY, setKEY] = useState("/data/");
+  const [CONFIG, setCONFIG] = useState(null);
+  const [playerstate] = useState(() => new PlayerState());
+
+  useEffect(() => {
+    fetch(KEY + "index.json")
+      .then(res => res.json())
+      .then((data) => {
+        const songs = data.song_list.map(s => new Song(s,KEY));
+        setCONFIG({
+          ...data,
+          song_list: songs
+        });
+      });
+  }, [KEY]);
+
   return (
-    <div className="app">
-      <Player/>
+    <div className={CONFIG ? "app" : "app hide"}>
+      {!CONFIG ? <Login setk={setKEY} /> : <></>}
+      <Player playstate={playerstate} config={CONFIG}/>
       <div className='content'>
-        <Playlist />
-        <Footer/>
+        <Playlist config={CONFIG} k={KEY} playstate={playerstate} />
+        <Footer />
       </div>
 
-      
-      <Navbar/>
+
+      <Navbar />
     </div>
   );
 
 }
-
-
-
-// function App() {
-//   return (
-//     <div className="App">
-//       <header className="App-header">
-//         <img src={logo} className="App-logo" alt="logo" />
-//         <p>
-//           Edit <code>src/App.js</code> and save to reload.
-//         </p>
-//         <a
-//           className="App-link"
-//           href="https://reactjs.org"
-//           target="_blank"
-//           rel="noopener noreferrer"
-//         >
-//           Learn React
-//         </a>
-//       </header>
-//     </div>
-//   );
-// }
 
 export default App;
