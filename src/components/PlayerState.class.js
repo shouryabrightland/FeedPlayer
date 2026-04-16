@@ -127,7 +127,7 @@ export default class PlayerState {
       if (!q.length) return;
   
       let i = this.queueIndex.get();
-      i = this.suffle.get()?Math.floor(Math.random()*(q.length-1)):(i + 1) % q.length;
+      i = this.suffle.get()?Math.round(Math.random()*(q.length-1)):(i + 1) % q.length;
   
       this.queueIndex.set(i);
     }

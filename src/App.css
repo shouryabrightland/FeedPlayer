@@ -10,11 +10,14 @@ body,
   --green:#1ed760;
   width: 100vw;
   height: 100vh;
+  height:100dvh;
   background-color: var(--black) ;
+  padding-top: env(safe-area-inset-top);
+  padding-bottom: env(safe-area-inset-bottom);
 }
 
 .app{
-  max-width: 700px;
+  max-width: 500px;
   width: 100%;
   box-shadow:  0 0 10px 0 black;
   border-radius: 20px 20px 0 0;
@@ -23,9 +26,12 @@ body,
   left: 50%;
   transform: translate(-50%,0);
   height: 100vh;
+  height:101dvh;
   max-height: 700px;
   overflow: hidden;
   background-color: rgb(19, 19, 19);
+  padding-top: env(safe-area-inset-top);
+  padding-bottom: env(safe-area-inset-bottom);
   
 }
 @media (max-width:800px) {
@@ -34,6 +40,7 @@ body,
     max-width: none;
     border-radius: 0;
     height: 100vh;
+    height:100dvh;
     max-height: none;
     top: 0;
     left: 0;

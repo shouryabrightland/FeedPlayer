@@ -53,7 +53,7 @@
     top: -5%;
     left: -5%;
 
-    filter: blur(10px);
+    /* filter: blur(10px); */
     transition: opacity 1s ease;
     opacity: 1;
 }
@@ -84,6 +84,7 @@
 }
 
 .player .cover-art {
+    opacity: 0;
     width: 100%;
     margin: 20px 0;
     height: 100%;

@@ -96,6 +96,22 @@ function Loop_btn(prop){
         <span><svg role="img" className={isLoop?"icon green":"icon"} viewBox="0 0 24 24"><path d="M6 2a5 5 0 0 0-5 5v8a5 5 0 0 0 5 5h1v-2H6a3 3 0 0 1-3-3V7a3 3 0 0 1 3-3h12a3 3 0 0 1 3 3v8a3 3 0 0 1-3 3h-4.798l1.298-1.298a1 1 0 1 0-1.414-1.414L9.373 19l3.713 3.712a1 1 0 0 0 1.414-1.414L13.202 20H18a5 5 0 0 0 5-5V7a5 5 0 0 0-5-5z"></path></svg></span>
     )
 }
+function Suffle_btn(prop){
+    /** @type {PlayerState}*/
+    const state = prop.state
+    const [isSuffle, setIsSuffle] = useState(state?.suffle.get())
+
+    if (!state) {
+        console.log("state not found in Suffle_btn")
+    }
+
+    useEffect(() => {
+        return state?.suffle.onUpdate(setIsSuffle)
+    }, [state])
+    return (
+        <span><svg role="img" className={isSuffle?"icon green":"icon"} viewBox="0 0 24 24"><path d="M18.788 3.702a1 1 0 0 1 1.414-1.414L23.914 6l-3.712 3.712a1 1 0 1 1-1.414-1.414L20.086 7h-1.518a5 5 0 0 0-3.826 1.78l-7.346 8.73a7 7 0 0 1-5.356 2.494H1v-2h1.04a5 5 0 0 0 3.826-1.781l7.345-8.73A7 7 0 0 1 18.569 5h1.518l-1.298-1.298z"></path><path d="M18.788 14.289a1 1 0 0 0 0 1.414L20.086 17h-1.518a5 5 0 0 1-3.826-1.78l-1.403-1.668-1.306 1.554 1.178 1.4A7 7 0 0 0 18.568 19h1.518l-1.298 1.298a1 1 0 1 0 1.414 1.414L23.914 18l-3.712-3.713a1 1 0 0 0-1.414 0zM7.396 6.49l2.023 2.404-1.307 1.553-2.246-2.67a5 5 0 0 0-3.826-1.78H1v-2h1.04A7 7 0 0 1 7.396 6.49"></path></svg></span>
+    )
+}
 
 export default function Player(prop) {
     /** @type {PlayerState}*/
@@ -114,8 +130,8 @@ export default function Player(prop) {
         else state?.isLoop.set(true)
     }
     const toggleSuffle = ()=>{
-        if(state?.isLoop.get()) state?.isLoop.set(false)
-        else state?.isLoop.set(true)
+        if(state?.suffle.get()) state?.suffle.set(false)
+        else state?.suffle.set(true)
     }
 
     useEffect(() => {
@@ -187,7 +203,7 @@ export default function Player(prop) {
                     <div className="player-control">
                         <div className="options">
                             <div className="opt" onClick={toggleSuffle}>
-                                <span><svg role="img" className="icon" viewBox="0 0 24 24"><path d="M18.788 3.702a1 1 0 0 1 1.414-1.414L23.914 6l-3.712 3.712a1 1 0 1 1-1.414-1.414L20.086 7h-1.518a5 5 0 0 0-3.826 1.78l-7.346 8.73a7 7 0 0 1-5.356 2.494H1v-2h1.04a5 5 0 0 0 3.826-1.781l7.345-8.73A7 7 0 0 1 18.569 5h1.518l-1.298-1.298z"></path><path d="M18.788 14.289a1 1 0 0 0 0 1.414L20.086 17h-1.518a5 5 0 0 1-3.826-1.78l-1.403-1.668-1.306 1.554 1.178 1.4A7 7 0 0 0 18.568 19h1.518l-1.298 1.298a1 1 0 1 0 1.414 1.414L23.914 18l-3.712-3.713a1 1 0 0 0-1.414 0zM7.396 6.49l2.023 2.404-1.307 1.553-2.246-2.67a5 5 0 0 0-3.826-1.78H1v-2h1.04A7 7 0 0 1 7.396 6.49"></path></svg></span>
+                                <Suffle_btn state={state}/>
                             </div>
                             <div className="opt" onClick={()=>state.prev()}>
                                 <span><svg role="img" className="icon" viewBox="0 0 24 24"><path d="M6.3 3a.7.7 0 0 1 .7.7v6.805l11.95-6.899a.7.7 0 0 1 1.05.606v15.576a.7.7 0 0 1-1.05.606L7 13.495V20.3a.7.7 0 0 1-.7.7H4.7a.7.7 0 0 1-.7-.7V3.7a.7.7 0 0 1 .7-.7z"></path></svg></span>
