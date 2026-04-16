@@ -13,8 +13,8 @@ export default function List(prop) {
         <div className="list">
             {(() => {
                 const cards = []
-                list.forEach(song => {
-                    cards.push(card(song,playstate))
+                list.forEach((s,index) => {
+                    cards.push(card(list,index,playstate))
                 })
                 return cards
             })()}
@@ -25,10 +25,11 @@ export default function List(prop) {
  * @param {Song} song
  * @param {PlayerState} playstate 
 */
-function card(song,playstate) {
+function card(list,index,playstate) {
+    const song = list[index]
     return (
         <div className="item" onClick={()=>{
-            playstate.play(song)
+            playstate.loadQueue(list,index)
         }}>
             <div className="side">
                 <img src={song.thumbnail} />

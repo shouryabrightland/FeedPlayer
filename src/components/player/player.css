@@ -57,7 +57,8 @@
     transition: opacity 1s ease;
     opacity: 1;
 }
-.player .backdrop .media.next{
+
+.player .backdrop .media.next {
     opacity: 0;
 }
 
@@ -131,6 +132,7 @@
 .player .progress-bar {
     max-width: 100%;
     padding: 10px;
+    touch-action: none;
 }
 
 .player .progress-bar .bar {
@@ -138,6 +140,11 @@
     height: 4px;
     background-color: gray;
     border-radius: 2px;
+    user-select: none;
+    -webkit-user-select: none;
+    /* Safari */
+    -ms-user-select: none;
+    /* old Edge */
 }
 
 .player .progress-bar .progress {
@@ -155,6 +162,11 @@
     color: var(--grey);
     font-size: 11px;
     margin-top: 8px;
+    user-select: none;
+    -webkit-user-select: none;
+    /* Safari */
+    -ms-user-select: none;
+    /* old Edge */
 }
 
 .player .player-control {
@@ -188,54 +200,71 @@
     opacity: 0;
 }
 
-.outer-player-card{
+.outer-player-card {
     width: 100%;
     padding: 10px;
     position: absolute;
     bottom: 70px;
     box-sizing: border-box;
+    transition: 0.3s;
+}
+
+.outer-player-card.min {
+    transform: translate(0, 200%);
 }
 
 
-.player-card{
+.player-card {
     width: 100%;
     background-color: rgba(0, 0, 0, 0.568);
-    border: 1px solid var(--grey);
+    box-shadow: 0 0 1px 0px var(--grey);
     border-radius: 5px;
     display: flex;
     flex-direction: row;
+    align-items: center;
     backdrop-filter: blur(40px);
 }
-.player-card .info{
+
+.player-card .info {
     color: white;
     display: flex;
     flex-direction: column;
     width: 100%;
     justify-content: center;
 }
-.player-card .info .title{
+
+.player-card .info .title {
     padding-bottom: 2px;
     font-size: 18px;
     font-weight: 800;
 }
-.player-card .info .description{
+
+.player-card .info .description {
     font-size: 12px;
     color: var(--grey);
 }
-.player-card .playbtn{
+
+.player-card .playbtn {
     padding: 10px;
     display: flex;
     align-items: center;
     justify-content: center;
+    aspect-ratio: 1 / 1;
+    height: 100%;
 }
-.player-card .thumbnail{
+
+.player-card .thumbnail {
     width: 50px;
     aspect-ratio: 1 / 1;
     border-radius: 10px;
     margin: 10px;
     background-color: var(--grey);
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
-.player-card .thumbnail > *{
+
+.player-card .thumbnail>* {
     border-radius: 10px;
     object-fit: cover;
     width: 100%;

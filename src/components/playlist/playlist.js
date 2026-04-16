@@ -1,6 +1,8 @@
 import "./playlist.css"
 import List from "./list"
 import Song from "../song.class"
+import PlayerState from "../PlayerState.class"
+import { Play_btn } from "../sm_components"
 
 function Playlist(prop) {
     const CONFIG = prop.config || {}
@@ -26,16 +28,16 @@ function Playlist(prop) {
                 </div>
                 <div class="outer-btn">
                     <div className="playbtn" onClick={()=>{
-                        state.play(list[0])
+                        state.loadQueue(list)
                     }}>
-                        <svg className="icon" viewBox="0 0 24 24"><path d="m7.05 3.606 13.49 7.788a.7.7 0 0 1 0 1.212L7.05 20.394A.7.7 0 0 1 6 19.788V4.212a.7.7 0 0 1 1.05-.606"></path></svg>
+                        <Play_btn state={state}/>
                     </div>
                 </div>
 
                 <div className="info">
                     <div className="pt1 title">{title}</div>
                     <div className="pt1 desc">{Description}</div>
-                    <div className="pt2 playlistInfo">2 songs <span className="dot"></span> 5 min</div>
+                    <div className="pt2 playlistInfo">{list.length} songs<span className="dot"></span> 5 min</div>
                     <div className="options">
 
                         <div className="opt like">
