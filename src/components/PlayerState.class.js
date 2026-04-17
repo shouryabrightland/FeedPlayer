@@ -1,26 +1,4 @@
-class state {
-  constructor(value) {
-    this.listeners = [];
-    this.value = value;
-  }
-
-  get() {
-    return this.value;
-  }
-
-  set(value) {
-    this.value = value;
-    this.listeners.forEach(fn => fn && fn(value));
-  }
-
-  onUpdate(fn) {
-    this.listeners.push(fn);
-    return () => {
-      this.listeners = this.listeners.filter(f => f !== fn);
-    };
-  }
-}
-
+import state from "./state.class";
 export default class PlayerState {
   constructor() {
     this.audio = new Audio();
@@ -99,7 +77,9 @@ export default class PlayerState {
     }
 
     this.isActive.set(true);
-    this.audio.play();
+    this.audio.play().catch(() => {
+      this.isPlaying.set(false);
+    });
   }
 
   // ▶️ Resume (NOT play new song)
@@ -121,14 +101,14 @@ export default class PlayerState {
 
   // ⏭ Next
   next() {
-    if(!this.isLoop.get()){
+    if (!this.isLoop.get()) {
 
       const q = this.queue.get();
       if (!q.length) return;
-  
+
       let i = this.queueIndex.get();
-      i = this.suffle.get()?Math.round(Math.random()*(q.length-1)):(i + 1) % q.length;
-  
+      i = this.suffle.get() ? Math.floor(Math.random() * q.length) : (i + 1) % q.length;
+
       this.queueIndex.set(i);
     }
     this.seek(0);
@@ -177,11 +157,6 @@ export default class PlayerState {
   }
 
   // 📈 Helpers
-  getProgress() {
-    const d = this.duration.get();
-    if (!d) return 0;
-    return (this.currentTime.get() / d) * 100;
-  }
 
   formatTime(sec) {
     if (!sec) return "0:00";
@@ -189,4 +164,11 @@ export default class PlayerState {
     const s = Math.floor(sec % 60).toString().padStart(2, "0");
     return `${m}:${s}`;
   }
+
+  destroy() {
+  this.audio.pause();
+  this.audio.src = "";
+
+  this.listeners = [];
+}
 }

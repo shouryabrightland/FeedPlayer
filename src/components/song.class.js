@@ -1,4 +1,6 @@
 // models/Song.js
+import state from "./state.class";
+
 export default class Song {
   constructor(data, basePath = "") {
     // 📦 Raw metadata
@@ -15,30 +17,30 @@ export default class Song {
 
     /** @type {string}*/
     this.video = data.video || null;
-    if(this.video) this.video = basePath+this.video
+    if (this.video) this.video = basePath + this.video
 
     // 📊 Derived metadata
-    /** @type {int}*/
-    this.duration = null;
+    /** @type {state}*/
+    this.duration = new state(null)
     /** @type {boolean}*/
-    this.isLoaded = false;
+    this.isLoaded = new state(false)
 
-    // 🔄 internal loader (no controls exposed)
-    this._audio = new Audio(this.songUrl);
+    this.loadMetadata()
+  }
+  loadMetadata() {
+    if (this.isLoaded.get()) return;
 
-    this._audio.addEventListener("loadedmetadata", () => {
-      this.duration = this._audio.duration;
-      this.isLoaded = true;
-
-      if (this.onLoad) this.onLoad(this); // notify if needed
+    const audio = new Audio(this.songUrl);
+    audio.addEventListener("loadedmetadata", () => {
+      this.duration.set(audio.duration || 0);
+      this.isLoaded.set(true);
     });
   }
-
   // ⏱ helper only (no control)
   getFormattedDuration() {
-    if (!this.duration) return "0:00";
-    const m = Math.floor(this.duration / 60);
-    const s = Math.floor(this.duration % 60).toString().padStart(2, "0");
+    if (!this.duration.get()) return "0:00";
+    const m = Math.floor(this.duration.get() / 60);
+    const s = Math.floor(this.duration.get() % 60).toString().padStart(2, "0");
     return `${m}:${s}`;
   }
 }

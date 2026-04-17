@@ -78,3 +78,9 @@ body,
 .icon.green{
   --color:var(--green) !important;
 }
+
+/* .overflow-text,.title,.desc,.description{
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+} */

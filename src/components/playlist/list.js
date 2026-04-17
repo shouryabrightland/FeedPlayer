@@ -2,22 +2,19 @@ import PlayerState from "../PlayerState.class"
 import Song from "../song.class"
 import "./list.css"
 export default function List(prop) {
-    console.log("list",prop)
     /** @type {Song[]}*/
     const list = prop.list
+
     /**
      * @type {PlayerState}
     */
     const playstate = prop.playstate
+
     return (
         <div className="list">
-            {(() => {
-                const cards = []
-                list.forEach((s,index) => {
-                    cards.push(card(list,index,playstate))
-                })
-                return cards
-            })()}
+            {list.map((song, index) => (
+                <Card key={index} song={song} index={index} playstate={playstate} list={list} />
+            ))}
         </div>
     )
 }
@@ -25,11 +22,17 @@ export default function List(prop) {
  * @param {Song} song
  * @param {PlayerState} playstate 
 */
-function card(list,index,playstate) {
-    const song = list[index]
+function Card({ list, index, playstate, song }) {
+
     return (
-        <div className="item" onClick={()=>{
-            playstate.loadQueue(list,index)
+        <div className="item" onClick={() => {
+            const currentSong = playstate.song.get();
+
+            if (currentSong?.songUrl === song.songUrl) {
+                playstate.toggle();
+            } else {
+                playstate.loadQueue(list, index);
+            }
         }}>
             <div className="side">
                 <img src={song.thumbnail} />

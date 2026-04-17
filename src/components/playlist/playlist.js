@@ -3,6 +3,37 @@ import List from "./list"
 import Song from "../song.class"
 import PlayerState from "../PlayerState.class"
 import { Play_btn } from "../sm_components"
+import { useState, useEffect } from "react"
+
+function useTotalDuration(list = []) {
+  const [total, setTotal] = useState(0);
+
+  useEffect(() => {
+    if (!list.length) return;
+
+    const update = () => {
+      const sum = list.reduce((acc, song) => acc + (song.duration.get() || 0), 0);
+      setTotal(sum);
+    };
+
+    // subscribe to all songs
+    const cleanups = list.map(song =>
+      song.duration.onUpdate(update)
+    );
+
+    // initial calc
+    update();
+
+    return () => cleanups.forEach(fn => fn && fn());
+  }, [list]);
+
+  return total;
+}
+
+function formatTotal(sec) {
+  const m = Math.floor(sec / 60);
+  return `${m} min`;
+}
 
 function Playlist(prop) {
     const CONFIG = prop.config || {}
@@ -16,28 +47,27 @@ function Playlist(prop) {
 
     /**@type {PlayerState}*/
     const state = prop.playstate
-    console.log("config",CONFIG,prop)
+
+    const totalDuration = useTotalDuration(list);
+    
     return (
         <div className="playlist">
             <div className='firstpage'>
                 <div className="thumbnail">
-                    {(()=>{
-                        if (thumbnail_url) return (<img src={KEY+thumbnail_url}/>)
-                        else return <></>
-                    })()}
+                    {thumbnail_url && <img src={KEY + thumbnail_url} />}
                 </div>
-                <div class="outer-btn">
-                    <div className="playbtn" onClick={()=>{
-                        state.loadQueue(list)
+                <div className="outer-btn">
+                    <div className="playbtn" onClick={() => {
+                        state.loadQueue(list, state.queue.get() === list ? state.queueIndex.get() : 0)
                     }}>
-                        <Play_btn state={state}/>
+                        <Play_btn state={state} />
                     </div>
                 </div>
 
                 <div className="info">
                     <div className="pt1 title">{title}</div>
                     <div className="pt1 desc">{Description}</div>
-                    <div className="pt2 playlistInfo">{list.length} songs<span className="dot"></span> 5 min</div>
+                    <div className="pt2 playlistInfo">{list.length} songs<span className="dot"></span> {formatTotal(totalDuration)}</div>
                     <div className="options">
 
                         <div className="opt like">
@@ -58,7 +88,7 @@ function Playlist(prop) {
                     </div>
                 </div>
             </div>
-            <List list={list} k={KEY} playstate = {state}/>
+            <List list={list} k={KEY} playstate={state} />
         </div>
     )
 }
