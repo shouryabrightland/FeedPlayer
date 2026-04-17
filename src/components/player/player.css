@@ -43,19 +43,18 @@
 .player .backdrop .media.show {
     opacity: 1 !important;
 }
-
+.player .backdrop.blur .media{
+    filter: blur(10px);
+}
 .player .backdrop .media {
     position: absolute;
     width: 110%;
     height: 110%;
     object-fit: cover;
-
     top: -5%;
     left: -5%;
-
-    /* filter: blur(10px); */
-    transition: opacity 1s ease;
-    opacity: 1;
+    transition: opacity 0.8s ease;
+    opacity: 0;
 }
 
 .player .backdrop .media.next {
@@ -84,13 +83,18 @@
 }
 
 .player .cover-art {
-    opacity: 0;
     width: 100%;
     margin: 20px 0;
     height: 100%;
     display: flex;
     align-items: center;
     justify-content: center;
+    transition: 0.2s;
+    opacity: 1;
+}
+.player .cover-art.hide{
+    opacity: 0;
+    transform: translate(0,100vh);
 }
 
 .player .cover-art .thumbnail {

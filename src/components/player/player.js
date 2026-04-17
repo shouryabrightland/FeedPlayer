@@ -70,17 +70,83 @@ function ProgressBar(prop) {
             </div>
         </div>)
 }
-function Player_backdrop(prop) {
-    const media = prop.media
-    const { current, next, fade } = useBackground(media);
+function Player_backdrop({ media = [], video, state }) {
+    const [videoReady, setVideoReady] = useState(false);
+    const videoRef = useRef(null);
+
+    // reset when video changes
+    useEffect(() => {
+        setVideoReady(false);
+    }, [video]);
+
+    // play / pause sync with player state
+   useEffect(() => {
+    if (!state || !videoReady) return;
+
+    const videoEl = videoRef.current;
+    if (!videoEl) return;
+
+    const cleanup = state.isPlaying.onUpdate((isPlaying) => {
+        if (isPlaying) {
+            videoEl.play().catch(() => {});
+        } else {
+            videoEl.pause();
+        }
+    });
+
+    return cleanup;
+}, [state, videoReady]);
+    // ensure video starts if already playing when it becomes ready
+    useEffect(() => {
+        const videoEl = videoRef.current;
+        if (!videoEl || !state) return;
+
+        if (videoReady && state.isPlaying.get()) {
+            videoEl.play().catch(() => {});
+        }
+    }, [videoReady, state]);
+
+    // slideshow only when video not ready
+    const shouldRunSlideshow = !video || !videoReady;
+    const { current, next, fade } = useBackground(
+        shouldRunSlideshow ? media : []
+    );
 
     return (
         <div className="backdrop">
-            <img className="media" src={current} />
-            <img className={`media next ${fade ? "show" : ""}`} src={next} />
-        </div>)
+
+            {/* SINGLE video element (no duplicate loading) */}
+            {video && (
+                <video
+                    ref={videoRef}
+                    className={`media video ${videoReady ? "show" : ""}`}
+                    src={video}
+                    muted
+                    loop
+                    playsInline
+                    preload="auto"
+                    onCanPlayThrough={() => setVideoReady(true)}
+                />
+            )}
+
+            {/* image buffer */}
+            {shouldRunSlideshow && (
+                <>
+                    <img
+                        className={`media image ${!videoReady ? "show" : ""}`}
+                        src={current}
+                    />
+                    <img
+                        className={`media image next ${fade ? "show" : ""}`}
+                        src={next}
+                    />
+                </>
+            )}
+
+        </div>
+    );
 }
-function Loop_btn(prop){
+function Loop_btn(prop) {
     /** @type {PlayerState}*/
     const state = prop.state
     const [isLoop, setIsLoop] = useState(state?.isLoop.get())
@@ -93,10 +159,10 @@ function Loop_btn(prop){
         return state?.isLoop.onUpdate(setIsLoop)
     }, [state])
     return (
-        <span><svg role="img" className={isLoop?"icon green":"icon"} viewBox="0 0 24 24"><path d="M6 2a5 5 0 0 0-5 5v8a5 5 0 0 0 5 5h1v-2H6a3 3 0 0 1-3-3V7a3 3 0 0 1 3-3h12a3 3 0 0 1 3 3v8a3 3 0 0 1-3 3h-4.798l1.298-1.298a1 1 0 1 0-1.414-1.414L9.373 19l3.713 3.712a1 1 0 0 0 1.414-1.414L13.202 20H18a5 5 0 0 0 5-5V7a5 5 0 0 0-5-5z"></path></svg></span>
+        <span><svg role="img" className={isLoop ? "icon green" : "icon"} viewBox="0 0 24 24"><path d="M6 2a5 5 0 0 0-5 5v8a5 5 0 0 0 5 5h1v-2H6a3 3 0 0 1-3-3V7a3 3 0 0 1 3-3h12a3 3 0 0 1 3 3v8a3 3 0 0 1-3 3h-4.798l1.298-1.298a1 1 0 1 0-1.414-1.414L9.373 19l3.713 3.712a1 1 0 0 0 1.414-1.414L13.202 20H18a5 5 0 0 0 5-5V7a5 5 0 0 0-5-5z"></path></svg></span>
     )
 }
-function Suffle_btn(prop){
+function Suffle_btn(prop) {
     /** @type {PlayerState}*/
     const state = prop.state
     const [isSuffle, setIsSuffle] = useState(state?.suffle.get())
@@ -109,7 +175,7 @@ function Suffle_btn(prop){
         return state?.suffle.onUpdate(setIsSuffle)
     }, [state])
     return (
-        <span><svg role="img" className={isSuffle?"icon green":"icon"} viewBox="0 0 24 24"><path d="M18.788 3.702a1 1 0 0 1 1.414-1.414L23.914 6l-3.712 3.712a1 1 0 1 1-1.414-1.414L20.086 7h-1.518a5 5 0 0 0-3.826 1.78l-7.346 8.73a7 7 0 0 1-5.356 2.494H1v-2h1.04a5 5 0 0 0 3.826-1.781l7.345-8.73A7 7 0 0 1 18.569 5h1.518l-1.298-1.298z"></path><path d="M18.788 14.289a1 1 0 0 0 0 1.414L20.086 17h-1.518a5 5 0 0 1-3.826-1.78l-1.403-1.668-1.306 1.554 1.178 1.4A7 7 0 0 0 18.568 19h1.518l-1.298 1.298a1 1 0 1 0 1.414 1.414L23.914 18l-3.712-3.713a1 1 0 0 0-1.414 0zM7.396 6.49l2.023 2.404-1.307 1.553-2.246-2.67a5 5 0 0 0-3.826-1.78H1v-2h1.04A7 7 0 0 1 7.396 6.49"></path></svg></span>
+        <span><svg role="img" className={isSuffle ? "icon green" : "icon"} viewBox="0 0 24 24"><path d="M18.788 3.702a1 1 0 0 1 1.414-1.414L23.914 6l-3.712 3.712a1 1 0 1 1-1.414-1.414L20.086 7h-1.518a5 5 0 0 0-3.826 1.78l-7.346 8.73a7 7 0 0 1-5.356 2.494H1v-2h1.04a5 5 0 0 0 3.826-1.781l7.345-8.73A7 7 0 0 1 18.569 5h1.518l-1.298-1.298z"></path><path d="M18.788 14.289a1 1 0 0 0 0 1.414L20.086 17h-1.518a5 5 0 0 1-3.826-1.78l-1.403-1.668-1.306 1.554 1.178 1.4A7 7 0 0 0 18.568 19h1.518l-1.298 1.298a1 1 0 1 0 1.414 1.414L23.914 18l-3.712-3.713a1 1 0 0 0-1.414 0zM7.396 6.49l2.023 2.404-1.307 1.553-2.246-2.67a5 5 0 0 0-3.826-1.78H1v-2h1.04A7 7 0 0 1 7.396 6.49"></path></svg></span>
     )
 }
 
@@ -126,11 +192,11 @@ export default function Player(prop) {
     const maximisePlayer = () => setIsMini(false)
     const toggle = () => state.toggle()
     const toggleLoop = () => {
-        if(state?.isLoop.get()) state?.isLoop.set(false)
+        if (state?.isLoop.get()) state?.isLoop.set(false)
         else state?.isLoop.set(true)
     }
-    const toggleSuffle = ()=>{
-        if(state?.suffle.get()) state?.suffle.set(false)
+    const toggleSuffle = () => {
+        if (state?.suffle.get()) state?.suffle.set(false)
         else state?.suffle.set(true)
     }
 
@@ -163,7 +229,11 @@ export default function Player(prop) {
 
         <div className={isActive && !isMini ? "outer-player" : "outer-player min"}>
             <div className="player">
-                <Player_backdrop media={song?.media} />
+                <Player_backdrop
+                    media={song?.media}
+                    video={song?.video}
+                    state={state}
+                />
                 <div className="main">
                     <div className="header">
                         <div id="player-back-btn" onClick={minimizePlayer}>
@@ -184,7 +254,7 @@ export default function Player(prop) {
                             </span>
                         </div>
                     </div>
-                    <div className="cover-art">
+                    <div className={song?.video ? "cover-art hide" : "cover-art"}>
                         <div className="thumbnail">
                             <img src={song?.thumbnail} />
                         </div>
@@ -203,19 +273,19 @@ export default function Player(prop) {
                     <div className="player-control">
                         <div className="options">
                             <div className="opt" onClick={toggleSuffle}>
-                                <Suffle_btn state={state}/>
+                                <Suffle_btn state={state} />
                             </div>
-                            <div className="opt" onClick={()=>state.prev()}>
+                            <div className="opt" onClick={() => state.prev()}>
                                 <span><svg role="img" className="icon" viewBox="0 0 24 24"><path d="M6.3 3a.7.7 0 0 1 .7.7v6.805l11.95-6.899a.7.7 0 0 1 1.05.606v15.576a.7.7 0 0 1-1.05.606L7 13.495V20.3a.7.7 0 0 1-.7.7H4.7a.7.7 0 0 1-.7-.7V3.7a.7.7 0 0 1 .7-.7z"></path></svg></span>
                             </div>
                             <div className="opt playbtn" onClick={toggle}>
                                 <Play_btn state={state} />
                             </div>
-                            <div className="opt" onClick={()=>state.next()}>
+                            <div className="opt" onClick={() => state.next()}>
                                 <span><svg role="img" className="icon" viewBox="0 0 24 24"><path d="M17.7 3a.7.7 0 0 0-.7.7v6.805L5.05 3.606A.7.7 0 0 0 4 4.212v15.576a.7.7 0 0 0 1.05.606L17 13.495V20.3a.7.7 0 0 0 .7.7h1.6a.7.7 0 0 0 .7-.7V3.7a.7.7 0 0 0-.7-.7z"></path></svg></span>
                             </div>
                             <div className="opt" onClick={toggleLoop}>
-                                <Loop_btn state={state}/>
+                                <Loop_btn state={state} />
                             </div>
                         </div>
                     </div>
@@ -232,7 +302,7 @@ function useBackground(media = []) {
     const [fade, setFade] = useState(false);
 
     useEffect(() => {
-        if (!media.length) return;
+        if (!media.length) return; // ✅ just exit, no return object
 
         const interval = setInterval(() => {
             const newIndex = Math.floor(Math.random() * media.length);
@@ -243,11 +313,16 @@ function useBackground(media = []) {
             setTimeout(() => {
                 setIndex(newIndex);
                 setFade(false);
-            }, 1000); // match CSS transition
+            }, 1000);
         }, 4000);
 
         return () => clearInterval(interval);
     }, [media]);
+
+    // ✅ handle empty case HERE (not inside useEffect)
+    if (!media.length) {
+        return { current: "", next: "", fade: false };
+    }
 
     return {
         current: media[index],
