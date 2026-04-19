@@ -1,51 +1,62 @@
-import PlayerState from "../PlayerState.class"
-import Song from "../song.class"
-import "./list.css"
+import PlayerState from "../PlayerState.class";
+import Song from "../song.class";
+import { usePlayerValue } from "../state.class";
+import styles from "./list.module.css";
+
 export default function List(prop) {
     /** @type {Song[]}*/
-    const list = prop.list
+    const list = prop.list;
 
-    /**
-     * @type {PlayerState}
-    */
-    const playstate = prop.playstate
+    /** @type {PlayerState} */
+    const playstate = prop.playstate;
 
     return (
-        <div className="list">
+        <div className={styles.list}>
             {list.map((song, index) => (
-                <Card key={index} song={song} index={index} playstate={playstate} list={list} />
+                <Card
+                    key={index}
+                    song={song}
+                    index={index}
+                    playstate={playstate}
+                    list={list}
+                />
             ))}
         </div>
-    )
+    );
 }
-/**
- * @param {Song} song
- * @param {PlayerState} playstate 
-*/
+
 function Card({ list, index, playstate, song }) {
+    const currentSong = usePlayerValue(playstate.song);
+    const isActive = currentSong?.songUrl === song.songUrl;
 
     return (
-        <div className="item" onClick={() => {
-            const currentSong = playstate.song.get();
-
-            if (currentSong?.songUrl === song.songUrl) {
-                playstate.toggle();
-            } else {
-                playstate.loadQueue(list, index);
-            }
-        }}>
-            <div className="side">
+        <div
+            className={`${styles.item} ${isActive ? styles.active : ""}`}
+            onClick={() => {
+                if (isActive) playstate.toggle();
+                else playstate.loadQueue(list, index);
+            }}
+        >
+            <div className={styles.side}>
                 <img src={song.thumbnail} />
             </div>
-            <div className="header">
-                <div className="info">
-                    <div className="title">{song.title}</div>
-                    <div className="desc">{song.description}</div>
+
+            <div className={styles.header}>
+                <div className={styles.info}>
+                    <div className={`${styles.title} ${styles.textOverflow}`}>
+                        {song.title}
+                    </div>
+                    <div className={`${styles.desc} ${styles.textOverflow}`}>
+                        {song.description}
+                    </div>
                 </div>
-                <div className="options">
-                    <svg role="img" className="icon" viewBox="0 0 24 24"><path d="M10.5 4.5a1.5 1.5 0 1 0 3 0 1.5 1.5 0 0 0-3 0m0 15a1.5 1.5 0 1 0 3 0 1.5 1.5 0 0 0-3 0m0-7.5a1.5 1.5 0 1 0 3 0 1.5 1.5 0 0 0-3 0"></path></svg>
+
+                <div className={styles.options}>
+                    <svg role="img" className={styles.icon} viewBox="0 0 24 24">
+                        <path d="M10.5 4.5a1.5 1.5 0 1 0 3 0 1.5 1.5 0 0 0-3 0m0 15a1.5 1.5 0 1 0 3 0 1.5 1.5 0 0 0-3 0m0-7.5a1.5 1.5 0 1 0 3 0 1.5 1.5 0 0 0-3 0"></path>
+                    </svg>
                 </div>
             </div>
         </div>
-    )
+    );
 }

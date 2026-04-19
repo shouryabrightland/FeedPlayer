@@ -11,7 +11,7 @@
     transform: none;
     transition: 0.2s;
 }
-.navbar .item{
+.item{
     --color: rgb(179, 179, 179);
     display: flex;
     flex-direction: column;
@@ -20,10 +20,11 @@
     color: var(--color);
     transition: 0.1s;
 }
-.navbar .item[active],.navbar .item:hover{
+.item.active,
+.item:hover{
     --color: white;
 }
-.navbar .item:hover{
+.item:hover{
     transform: scale(1.05);
 }
 

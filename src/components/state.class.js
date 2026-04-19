@@ -1,3 +1,4 @@
+import { useState, useEffect } from "react";
 export default class state {
   constructor(value) {
     this.listeners = [];
@@ -20,4 +21,17 @@ export default class state {
       this.listeners = this.listeners.filter(f => f !== fn);
     };
   }
+}
+
+export function usePlayerValue(stateObj) {
+  const [value, setValue] = useState(stateObj?.get());
+
+  useEffect(() => {
+    if (!stateObj) return;
+
+    setValue(stateObj.get()); // sync immediately
+    return stateObj.onUpdate(setValue);
+  }, [stateObj]);
+
+  return value;
 }

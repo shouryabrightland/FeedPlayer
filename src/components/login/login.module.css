@@ -16,7 +16,7 @@
     z-index: 20;
 }
 
-.login .popout{
+.popout{
     width: 80%;
     object-fit: contain;
 
@@ -30,18 +30,18 @@
     justify-content: center;
     box-shadow: 0 0 10px -2px var(--black);
 }
-.login .popout .header{
+.popout .header{
     font-size: 18px;
     font-weight: 800;
     text-transform: capitalize;
     margin-top:10px;
 }
-.login .popout .description{
+.popout .description{
     font-size: 12px;
     margin-top: 5px;
     color: var(--grey);
 }
-.login input#key{
+input#key{
     margin: 10px;
     width: 100%;
     padding: 10px;
@@ -52,8 +52,4 @@
     outline: none;
     border: 1px solid black;
     font-size: 16px;
-}
-
-.login input#key.checking::befor{
-    content: "";
 }

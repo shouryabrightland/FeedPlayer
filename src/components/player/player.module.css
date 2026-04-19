@@ -1,4 +1,4 @@
-.outer-player {
+.outerPlayer {
     position: absolute;
     max-width: 100%;
     width: 100%;
@@ -28,7 +28,7 @@
 
 }
 
-.player .backdrop {
+.backdrop {
     position: absolute;
     width: 100%;
     height: 100%;
@@ -40,13 +40,13 @@
     z-index: 9;
 }
 
-.player .backdrop .media.show {
+.backdrop .media.show {
     opacity: 1 !important;
 }
-.player .backdrop.blur .media{
+.backdrop.blur .media{
     filter: blur(10px);
 }
-.player .backdrop .media {
+.backdrop .media {
     position: absolute;
     width: 110%;
     height: 110%;
@@ -57,7 +57,7 @@
     opacity: 0;
 }
 
-.player .backdrop .media.next {
+.backdrop .media.next {
     opacity: 0;
 }
 
@@ -82,7 +82,7 @@
     color: white;
 }
 
-.player .cover-art {
+.coverArt {
     width: 100%;
     margin: 20px 0;
     height: 100%;
@@ -92,12 +92,12 @@
     transition: 0.2s;
     opacity: 1;
 }
-.player .cover-art.hide{
+.coverArt.hide{
     opacity: 0;
     transform: translate(0,100vh);
 }
 
-.player .cover-art .thumbnail {
+.coverArt .thumbnail {
     display: flex;
     align-items: center;
     justify-content: center;
@@ -107,12 +107,12 @@
     object-fit: contain;
 }
 
-.player .cover-art .thumbnail>* {
+.coverArt .thumbnail>* {
     border-radius: 10px;
     box-shadow: 0 0 20px -2px black;
 }
 
-.player .meta-data {
+.meta {
     margin: 10px 0;
     width: 100%;
     display: flex;
@@ -120,7 +120,7 @@
     justify-content: space-between;
 }
 
-.player .meta-data .info {
+.meta .info {
     padding-left: 10px;
     display: flex;
     flex-direction: column;
@@ -129,18 +129,18 @@
     color: white;
 }
 
-.player .meta-data .name {
+.meta .name {
     font-weight: 800;
     font-size: 20px;
 }
 
-.player .progress-bar {
+.progressBar {
     max-width: 100%;
     padding: 10px;
     touch-action: none;
 }
 
-.player .progress-bar .bar {
+.progressBar .bar {
     width: 100%;
     height: 4px;
     background-color: gray;
@@ -152,14 +152,14 @@
     /* old Edge */
 }
 
-.player .progress-bar .progress {
+.progressBar .progress {
     width: 50%;
     background-color: white;
     border-radius: 2px;
     height: 100%;
 }
 
-.player .progress-bar .label {
+.progressBar .label {
     width: 100%;
     display: flex;
     flex-direction: row;
@@ -174,19 +174,19 @@
     /* old Edge */
 }
 
-.player .player-control {
+.playerControl {
     width: 100%;
     margin-top: 20px;
 }
 
-.player .player-control .options {
+.playerControl .options {
     display: flex;
     flex-direction: row;
     align-items: center;
     justify-content: space-between;
 }
 
-.player .player-control .options .playbtn {
+.playerControl .playbtn {
     padding: 10px;
     box-shadow: 0 0 10px -2px black;
     background-color: white;
@@ -196,11 +196,11 @@
     justify-content: center;
 }
 
-.player .player-control .options .playbtn .icon {
+.player .playbtn .icon {
     --color: black;
 }
 
-.outer-player.min {
+.outerPlayer.min {
     transform: translate(0, 110%);
     opacity: 0;
 }
@@ -208,7 +208,7 @@
 
 
 
-.outer-player-card {
+.outerPlayerCard {
     width: 100%;
     padding: 10px;
     position: absolute;
@@ -217,12 +217,12 @@
     transition: 0.3s;
 }
 
-.outer-player-card.min {
+.outerPlayerCard.min {
     transform: translate(0, 200%);
 }
 
 
-.player-card {
+.playerCard {
     width: 100%;
     background-color: rgba(0, 0, 0, 0.568);
     box-shadow: 0 0 1px 0px var(--grey);
@@ -233,7 +233,7 @@
     backdrop-filter: blur(40px);
 }
 
-.player-card .info {
+.playerCard .info {
     color: white;
     display: flex;
     flex-direction: column;
@@ -241,18 +241,18 @@
     justify-content: center;
 }
 
-.player-card .info .title {
+.playerCard .info .title {
     padding-bottom: 2px;
     font-size: 18px;
     font-weight: 800;
 }
 
-.player-card .info .description {
+.playerCard .info .description {
     font-size: 12px;
     color: var(--grey);
 }
 
-.player-card .playbtn {
+.playerCard .playbtn {
     padding: 10px;
     display: flex;
     align-items: center;
@@ -261,7 +261,7 @@
     height: 100%;
 }
 
-.player-card .thumbnail {
+.playerCard .thumbnail {
     width: 50px;
     aspect-ratio: 1 / 1;
     border-radius: 10px;
@@ -272,7 +272,7 @@
     justify-content: center;
 }
 
-.player-card .thumbnail>* {
+.playerCard .thumbnail>* {
     border-radius: 10px;
     object-fit: cover;
     width: 100%;
