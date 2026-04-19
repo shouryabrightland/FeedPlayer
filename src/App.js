@@ -1,4 +1,3 @@
-import logo from './logo.svg';
 import './App.css';
 import Playlist from './components/playlist/playlist';
 import Navbar from './components/navbar';
@@ -11,33 +10,31 @@ import { useState, useEffect, useRef } from 'react';
 import Login from './components/login/login';
 
 function App() {
-  const [KEY, setKEY] = useState("/data/");
+  const [KEY, setKEY] = useState(null);
   const [CONFIG, setCONFIG] = useState(null);
   const playerstateRef = useRef(null);
-
   if (!playerstateRef.current) {
     playerstateRef.current = new PlayerState();
   }
-
   const playerstate = playerstateRef.current;
 
   useEffect(() => {
-    fetch(KEY + "index.json")
+    if(KEY){
+      fetch(KEY + "index.json")
       .then(res => res.json())
       .then((data) => setCONFIG(buildConfig(data, KEY)));
+    }
   }, [KEY]);
 
   return (
-    <div className={CONFIG ? "app" : "app hide"}>
+    <div className="app">
       {!CONFIG ? <Login setk={setKEY} /> : <></>}
-      <Player playstate={playerstate} config={CONFIG} />
+      {CONFIG && <Player playstate={playerstate} config={CONFIG} />}
       <div className='content'>
         <Playlist config={CONFIG} k={KEY} playstate={playerstate} />
         <Footer />
       </div>
-
-
-      <Navbar />
+      <Navbar key={KEY} />
     </div>
   );
 

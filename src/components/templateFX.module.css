@@ -1,0 +1,26 @@
+.loading{
+    width: 100%;
+    display: inline-block;
+    position: relative;
+}
+.loading::before{
+    content: "";
+    background: linear-gradient(158deg, black 30%, rgb(150, 150, 150) 50%, black 70%);
+    width: 100%;
+    position: absolute;
+    height: 100%;
+    display: inline-block;
+    border-radius: 10px;
+    background-size: 500%;
+    background-position-x: 0%;
+    animation: temp 2s ease-in-out infinite forwards;
+}
+@keyframes temp {
+    0%{
+        background-position-x:0% ;
+    }
+    100%{
+        background-position: 100%;
+    }
+    
+}
