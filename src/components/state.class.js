@@ -10,6 +10,8 @@ export default class state {
   }
 
   set(value) {
+    if (this.value === value) return;
+    console.log("STATE CHANGED",this.value,value)
     this.value = value;
     this.listeners.forEach(fn => fn && fn(value));
   }

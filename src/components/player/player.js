@@ -4,7 +4,7 @@ import { Play_btn } from "../sm_components";
 import { useRef } from "react";
 import { usePlayerValue } from "../state.class";
 import styles from "./player.module.css"
-
+import React from "react"
 
 function ProgressBar(prop) {
     /** @type {PlayerState}*/
@@ -78,7 +78,8 @@ function ProgressBar(prop) {
         </div>)
 
 }
-function Player_backdrop({ media = [], video, state }) {
+const Player_backdrop = React.memo(function Player_backdrop({ media = [], video, state }) {
+    console.log("rendering Backdrop")
     const videoRef = useRef(null);
     const [videoReady, setVideoReady] = useState(false);
     // reset when video changes
@@ -154,7 +155,8 @@ function Player_backdrop({ media = [], video, state }) {
 
         </div>
     );
-}
+})
+
 function Loop_btn(prop) {
     /** @type {PlayerState}*/
     const state = prop.state
@@ -175,7 +177,8 @@ function Suffle_btn(prop) {
     )
 }
 
-export default function Player(prop) {
+export default React.memo(function Player(prop) {
+    console.log("Rendering Player")
     /** @type {PlayerState}*/
     const state = prop.playstate
     const config = prop.config || null
@@ -273,11 +276,9 @@ export default function Player(prop) {
                         </div>
                     </div>
                 </div>
-
-
             </div>
         </div></>)
-}
+})
 
 function useBackground(media = []) {
     const [index, setIndex] = useState(0);

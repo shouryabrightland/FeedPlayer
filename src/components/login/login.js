@@ -1,8 +1,21 @@
 import styles from "./login.module.css"
-export default function Login(prop){
-    const setKey = prop.setk
-    const handleChange = (e)=> setKey(e.target.value)
-
+import React from "react"
+export default React.memo(function Login({appstate,buildConfig}){
+    console.log("Rendering Login")
+    const handleChange = (e)=> {
+        const key = e.target.value;
+        if (key) {
+            fetch(key + "index.json")
+            .then(res => res.json())
+            .then((data) => {
+                appstate.CONFIG.set(buildConfig(data, key))
+                appstate.KEY.set(key)
+            })
+            .catch((e)=>{
+              console.log("invalid Key",e)
+            })
+        }
+    }
     return (<div className={styles.login}>
         <div className={styles.backdrop}></div>
         <div className={styles.popout}>
@@ -11,4 +24,4 @@ export default function Login(prop){
             <input type="text" id={styles.key} className={styles.checking} onChange={handleChange}/>
         </div>
     </div>)
-}
+})

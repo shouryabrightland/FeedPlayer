@@ -1,40 +1,53 @@
-import './App.css';
-import Playlist from './components/playlist/playlist';
-import Navbar from './components/navbar';
-import Footer from './components/footer';
-import Player from './components/player/player';
-import Song from './components/song.class';
-import PlayerState from './components/PlayerState.class';
-
-import { useState, useEffect, useRef } from 'react';
+import { useRef, lazy, Suspense } from 'react';
+import { AppState, useAppState } from './AppState.class';
 import Login from './components/login/login';
+import PlayerState from './components/PlayerState.class';
+import Song from './components/song.class';
+import Footer from './components/footer';
+import './App.css';
+
+const Playlist = lazy(() => import('./components/playlist/playlist'));
+const Navbar = lazy(() => import('./components/navbar'));
+const Player = lazy(() => import('./components/player/player'));
 
 function App() {
-  const [KEY, setKEY] = useState(null);
-  const [CONFIG, setCONFIG] = useState(null);
+  console.log("Rendering App")
+
   const playerstateRef = useRef(null);
+  const appstateRef = useRef(null);
   if (!playerstateRef.current) {
     playerstateRef.current = new PlayerState();
   }
-  const playerstate = playerstateRef.current;
+  if (!appstateRef.current) {
+    appstateRef.current = new AppState()
+  }
 
-  useEffect(() => {
-    if(KEY){
-      fetch(KEY + "index.json")
-      .then(res => res.json())
-      .then((data) => setCONFIG(buildConfig(data, KEY)));
-    }
-  }, [KEY]);
+
+  /**
+   * @type {AppState}
+  */
+  const appstate = appstateRef.current;
+  const playerstate = playerstateRef.current;
+  const config = useAppState(appstate.CONFIG)
 
   return (
     <div className="app">
-      {!CONFIG ? <Login setk={setKEY} /> : <></>}
-      {CONFIG && <Player playstate={playerstate} config={CONFIG} />}
+      {!config ? <Login appstate={appstate} buildConfig={buildConfig} /> : <></>}
+     
+      <Suspense fallback={<div></div>}>
+        {config && <Player playstate={playerstate} appstate={appstate} />}
+      </Suspense>
+
       <div className='content'>
-        <Playlist config={CONFIG} k={KEY} playstate={playerstate} />
+        <Suspense fallback={<div></div>}>
+          <Playlist appstate={appstate} playstate={playerstate} />
+        </Suspense>
         <Footer />
+
       </div>
-      <Navbar key={KEY} />
+      <Suspense fallback={<></>}>
+        <Navbar appstate={appstate} />
+      </Suspense>
     </div>
   );
 
@@ -43,7 +56,8 @@ function App() {
 function buildConfig(data, KEY) {
   return {
     ...data,
-    song_list: data.song_list.map(s => new Song(s, KEY))
+    song_list: data.song_list.map(s => new Song(s, KEY)),
+    _key: KEY
   }
 }
 

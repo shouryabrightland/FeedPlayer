@@ -2,8 +2,10 @@ import PlayerState from "../PlayerState.class";
 import Song from "../song.class";
 import { usePlayerValue } from "../state.class";
 import styles from "./list.module.css";
+import React from "react"
 
-export default function List(prop) {
+export default React.memo(function List(prop) {
+    console.log("Rendering List")
     /** @type {Song[]}*/
     const list = prop.list;
 
@@ -23,7 +25,7 @@ export default function List(prop) {
             ))}
         </div>
     );
-}
+})
 
 function Card({ list, index, playstate, song }) {
     const currentSong = usePlayerValue(playstate.song);
