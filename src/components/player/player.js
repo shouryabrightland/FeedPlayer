@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import PlayerState from "../PlayerState.class"
 import { Play_btn } from "../sm_components";
 import { useRef } from "react";
@@ -78,107 +78,153 @@ function ProgressBar(prop) {
         </div>)
 
 }
-const Player_backdrop = React.memo(function Player_backdrop({ media = [], video, state }) {
-    console.log("rendering Backdrop")
-    const videoRef = useRef(null);
-    const [videoReady, setVideoReady] = useState(false);
-    // reset when video changes
+
+const Player_backdrop = React.memo(function Player_backdrop({ media = [], state }) {
+    const containerRef = useRef(null);
+    const itemRefs = useRef([]);
+
     useEffect(() => {
-        setVideoReady(false);
-    }, [video]);
+        if (!containerRef.current) return;
 
-    // play / pause sync with player state
-    useEffect(() => {
-        if (!state || !videoReady) return;
+        const observer = new IntersectionObserver(
+            (entries) => {
+                entries.forEach((entry) => {
+                    const video = entry.target.querySelector("video");
 
-        const videoEl = videoRef.current;
-        if (!videoEl) return;
+                    if (!video) return;
 
-        const cleanup = state.isPlaying.onUpdate((isPlaying) => {
-            if (isPlaying) {
-                videoEl.play().catch(() => { });
-            } else {
-                videoEl.pause();
+                    if (entry.isIntersecting) {
+                        if (state.isPlaying.get()) {
+                            video.play().catch(() => { });
+                        }
+                    } else {
+                        video.pause();
+                    }
+                });
+            },
+            {
+                threshold: 0.6 // only active when mostly visible
             }
+        );
+
+        itemRefs.current.forEach((el) => {
+            if (el) observer.observe(el);
+        });
+
+        return () => observer.disconnect();
+    }, [media, state]);
+
+    // sync pause/play with player
+    useEffect(() => {
+        const cleanup = state.isPlaying.onUpdate((isPlaying) => {
+            itemRefs.current.forEach((el) => {
+                if (!el) return;
+                const video = el.querySelector("video");
+                if (!video) return;
+
+                if (isPlaying) {
+                    video.play().catch(() => { });
+                } else {
+                    video.pause();
+                }
+            });
         });
 
         return cleanup;
-    }, [state, videoReady]);
+    }, [state]);
 
+    const baseList = useMemo(() => shuffleArray(media), [media]);
 
-    // ensure video starts if already playing when it becomes ready
     useEffect(() => {
-        const videoEl = videoRef.current;
-        if (!videoEl || !state) return;
+        const container = containerRef.current;
+        if (!container) return;
 
-        if (videoReady && state.isPlaying.get()) {
-            videoEl.play().catch(() => { });
-        }
-    }, [videoReady, state]);
+        const itemHeight = window.innerHeight;
+        const middleIndex = baseList.length * 2; // center of 5 blocks
 
-    // slideshow only when video not ready
-    const shouldRunSlideshow = !video || !videoReady;
-    const { current, next, fade } = useBackground(
-        shouldRunSlideshow ? media : []
-    );
+        container.scrollTop = middleIndex * itemHeight;
+    }, [baseList]);
+
+    useEffect(() => {
+        const container = containerRef.current;
+        if (!container) return;
+
+        let timeout;
+
+        const handleScroll = () => {
+            clearTimeout(timeout);
+
+            timeout = setTimeout(() => {
+                const itemHeight = window.innerHeight;
+                const total = baseList.length;
+
+                const currentIndex = Math.round(container.scrollTop / itemHeight);
+
+                // reposition silently
+                if (currentIndex < total || currentIndex > total * 3) {
+                    container.scrollTop =
+                        (currentIndex % total + total * 2) * itemHeight;
+                }
+            }, 120); // wait for scroll to stop
+        };
+
+        container.addEventListener("scroll", handleScroll);
+        return () => container.removeEventListener("scroll", handleScroll);
+    }, [baseList]);
+
+    const loopedMedia = useMemo(() => {
+        return [
+            ...baseList,
+            ...baseList,
+            ...baseList,
+            ...baseList,
+            ...baseList
+        ];
+    }, [baseList]);
+
+    const coverArtMinimize = usePlayerValue(state.coverArtMinimize);
 
     return (
-        <div className={`${styles.backdrop} ${videoReady ? "" : styles.blur}`}>
-
-            {/* SINGLE video element (no duplicate loading) */}
-            {video && (
-                <video
-                    ref={videoRef}
-                    className={`${styles.media} ${styles.video} ${videoReady ? styles.show : ""}`}
-                    src={video}
-                    muted
-                    loop
-                    playsInline
-                    preload="auto"
-                    onCanPlayThrough={() => setVideoReady(true)}
-                />
-            )}
-
-            {/* image buffer */}
-            {shouldRunSlideshow && (
-                <>
-                    {current && <img
-                        className={`${styles.media} ${styles.image} ${!videoReady ? styles.show : ""}`}
-                        src={current}
-                    />}
-                    {next && <img
-                        className={`${styles.media} ${styles.image} ${styles.next} ${fade ? styles.show : ""}`}
-                        src={next}
-                    />}
-                </>
-            )}
-
+        <div className={`${styles.backdropFeed} ${coverArtMinimize?"":styles.blur}`} ref={containerRef}>
+            {loopedMedia.map((item, i) => (
+                <div
+                    key={i}
+                    className={styles.feedItem}
+                    ref={(el) => (itemRefs.current[i] = el)}
+                >
+                    {item.type === "video" ? (
+                        <video
+                            src={item.src}
+                            muted
+                            loop
+                            playsInline
+                            preload="metadata"
+                        />
+                    ) : (
+                        <img src={item.src} alt="" />
+                    )}
+                </div>
+            ))}
         </div>
     );
-})
+});
 
-function Loop_btn(prop) {
-    /** @type {PlayerState}*/
-    const state = prop.state
-    const isLoop = usePlayerValue(state.isLoop)
-
+function CoverArt({state}) {
+    const minimize = usePlayerValue(state.coverArtMinimize)
+    const song = usePlayerValue(state.song)
+    const toggle = ()=> state.coverArtMinimize.set(!minimize)
     return (
-        <span><svg role="img" className={`icon ${styles.icon} ${isLoop ? styles.green : ""}`} viewBox="0 0 24 24"><path d="M6 2a5 5 0 0 0-5 5v8a5 5 0 0 0 5 5h1v-2H6a3 3 0 0 1-3-3V7a3 3 0 0 1 3-3h12a3 3 0 0 1 3 3v8a3 3 0 0 1-3 3h-4.798l1.298-1.298a1 1 0 1 0-1.414-1.414L9.373 19l3.713 3.712a1 1 0 0 0 1.414-1.414L13.202 20H18a5 5 0 0 0 5-5V7a5 5 0 0 0-5-5z"></path></svg></span>
-    )
-}
-
-
-function Suffle_btn(prop) {
-    /** @type {PlayerState}*/
-    const state = prop.state
-    const isSuffle = usePlayerValue(state.suffle)
-    return (
-        <span><svg role="img" className={`icon ${styles.icon} ${isSuffle ? styles.green : ""}`} viewBox="0 0 24 24"><path d="M18.788 3.702a1 1 0 0 1 1.414-1.414L23.914 6l-3.712 3.712a1 1 0 1 1-1.414-1.414L20.086 7h-1.518a5 5 0 0 0-3.826 1.78l-7.346 8.73a7 7 0 0 1-5.356 2.494H1v-2h1.04a5 5 0 0 0 3.826-1.781l7.345-8.73A7 7 0 0 1 18.569 5h1.518l-1.298-1.298z"></path><path d="M18.788 14.289a1 1 0 0 0 0 1.414L20.086 17h-1.518a5 5 0 0 1-3.826-1.78l-1.403-1.668-1.306 1.554 1.178 1.4A7 7 0 0 0 18.568 19h1.518l-1.298 1.298a1 1 0 1 0 1.414 1.414L23.914 18l-3.712-3.713a1 1 0 0 0-1.414 0zM7.396 6.49l2.023 2.404-1.307 1.553-2.246-2.67a5 5 0 0 0-3.826-1.78H1v-2h1.04A7 7 0 0 1 7.396 6.49"></path></svg></span>
+        <div className={`${styles.coverArt} ${minimize ? styles.minimize : ""}`}>
+            <div className={styles.thumbnail}>
+                <img src={song?.thumbnail} onClick={toggle} />
+            </div>
+        </div>
     )
 }
 
 export default React.memo(function Player(prop) {
-    console.log("Rendering Player")
+    console.log("Rendering Player");
+
     /** @type {PlayerState}*/
     const state = prop.playstate
     const config = prop.config || null
@@ -196,6 +242,9 @@ export default React.memo(function Player(prop) {
     const next = () => state.next();
     const prev = () => state.prev();
 
+    console.log(song)
+
+    const coverArtMinimize = usePlayerValue(state.coverArtMinimize)
     return (<>
         <div className={isActive ? styles.outerPlayerCard : `${styles.outerPlayerCard} ${styles.min}`}>
             <div className={styles.playerCard}>
@@ -214,13 +263,13 @@ export default React.memo(function Player(prop) {
         </div>
 
         <div className={isActive && !isMini ? styles.outerPlayer : `${styles.outerPlayer} ${styles.min}`}>
-    <div className={styles.player}>
+            <div className={styles.player}>
                 <Player_backdrop
                     media={song?.media}
-                    video={song?.video}
                     state={state}
                 />
-                <div className={styles.main}>
+
+                <div className={`${styles.main} ${coverArtMinimize? styles.enableFeed:""}`}>
                     <div className={styles.header}>
                         <div onClick={minimizePlayer}>
                             <span>
@@ -240,11 +289,7 @@ export default React.memo(function Player(prop) {
                             </span>
                         </div>
                     </div>
-                    <div className={`${styles.coverArt} ${song?.video ? styles.hide:""}`}>
-                        <div className={styles.thumbnail}>
-                            <img src={song?.thumbnail} />
-                        </div>
-                    </div>
+                    <CoverArt state={state} />
                     <div className={styles.meta}>
                         <div className={styles.info}>
                             <div className={styles.name}>{song?.title}</div>
@@ -316,4 +361,33 @@ function useBackground(media = []) {
         next: media[nextIndex],
         fade
     };
+}
+
+function shuffleArray(arr) {
+    const copy = [...arr];
+    for (let i = copy.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [copy[i], copy[j]] = [copy[j], copy[i]];
+    }
+    return copy;
+}
+
+function Loop_btn(prop) {
+    /** @type {PlayerState}*/
+    const state = prop.state
+    const isLoop = usePlayerValue(state.isLoop)
+
+    return (
+        <span><svg role="img" className={`icon ${styles.icon} ${isLoop ? styles.green : ""}`} viewBox="0 0 24 24"><path d="M6 2a5 5 0 0 0-5 5v8a5 5 0 0 0 5 5h1v-2H6a3 3 0 0 1-3-3V7a3 3 0 0 1 3-3h12a3 3 0 0 1 3 3v8a3 3 0 0 1-3 3h-4.798l1.298-1.298a1 1 0 1 0-1.414-1.414L9.373 19l3.713 3.712a1 1 0 0 0 1.414-1.414L13.202 20H18a5 5 0 0 0 5-5V7a5 5 0 0 0-5-5z"></path></svg></span>
+    )
+}
+
+
+function Suffle_btn(prop) {
+    /** @type {PlayerState}*/
+    const state = prop.state
+    const isSuffle = usePlayerValue(state.suffle)
+    return (
+        <span><svg role="img" className={`icon ${styles.icon} ${isSuffle ? styles.green : ""}`} viewBox="0 0 24 24"><path d="M18.788 3.702a1 1 0 0 1 1.414-1.414L23.914 6l-3.712 3.712a1 1 0 1 1-1.414-1.414L20.086 7h-1.518a5 5 0 0 0-3.826 1.78l-7.346 8.73a7 7 0 0 1-5.356 2.494H1v-2h1.04a5 5 0 0 0 3.826-1.781l7.345-8.73A7 7 0 0 1 18.569 5h1.518l-1.298-1.298z"></path><path d="M18.788 14.289a1 1 0 0 0 0 1.414L20.086 17h-1.518a5 5 0 0 1-3.826-1.78l-1.403-1.668-1.306 1.554 1.178 1.4A7 7 0 0 0 18.568 19h1.518l-1.298 1.298a1 1 0 1 0 1.414 1.414L23.914 18l-3.712-3.713a1 1 0 0 0-1.414 0zM7.396 6.49l2.023 2.404-1.307 1.553-2.246-2.67a5 5 0 0 0-3.826-1.78H1v-2h1.04A7 7 0 0 1 7.396 6.49"></path></svg></span>
+    )
 }

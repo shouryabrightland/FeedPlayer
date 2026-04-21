@@ -15,7 +15,7 @@
 
 .player .main {
     position: absolute;
-    background: radial-gradient(transparent 0%, rgba(0, 0, 0, 1) 100%);
+    background: radial-gradient(transparent 0%, rgba(0, 0, 0, 0.8) 100%);
     width: 100%;
     height: calc(100%);
     z-index: 10;
@@ -25,40 +25,19 @@
     justify-content: space-between;
     box-sizing: border-box;
     padding-bottom: 20px;
-
 }
 
-.backdrop {
-    position: absolute;
-    width: 100%;
-    height: 100%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    background-color: black;
-    /* filter: blur(8px); */
-    z-index: 9;
+.player .main.enableFeed{
+    pointer-events: none;
 }
 
-.backdrop .media.show {
-    opacity: 1 !important;
-}
-.backdrop.blur .media{
-    filter: blur(10px);
-}
-.backdrop .media {
-    position: absolute;
-    width: 110%;
-    height: 110%;
-    object-fit: cover;
-    top: -5%;
-    left: -5%;
-    transition: opacity 0.8s ease;
-    opacity: 0;
-}
-
-.backdrop .media.next {
-    opacity: 0;
+.player .header,
+.progressBar,
+.coverArt .thumbnail>*,
+.playerControl,
+.player .playbtn,
+.player .options {
+    pointer-events: auto;
 }
 
 .player .header {
@@ -84,32 +63,41 @@
 
 .coverArt {
     width: 100%;
-    margin: 20px 0;
+    margin: 10px 0 0 0;
     height: 100%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    transition: 0.2s;
+    transition: width 0.2s ease;
     opacity: 1;
 }
-.coverArt.hide{
-    opacity: 0;
-    transform: translate(0,100vh);
+.coverArt.minimize .thumbnail{
+    align-items: end;
+    justify-content: start;
+}
+.coverArt.minimize .thumbnail> *{
+    border-radius: 10px;
+    box-shadow: 0 0 20px -2px black;
+    position: absolute;
+    top: 100%;
+    left: 0%;
+    transform: translate(-24%, -75%) scale(0.5);
+    transition: 0.4s ease;
 }
 
 .coverArt .thumbnail {
-    display: flex;
-    align-items: center;
-    justify-content: center;
     overflow: hidden;
     height: 100%;
     width: 100%;
+    position: relative;
     object-fit: contain;
 }
 
 .coverArt .thumbnail>* {
     border-radius: 10px;
     box-shadow: 0 0 20px -2px black;
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    transition: 0.4s ease;
 }
 
 .meta {
@@ -206,7 +194,7 @@
 }
 
 
-
+/* card */
 
 .outerPlayerCard {
     width: 100%;
@@ -280,4 +268,53 @@
 }
 .icon.green{
   --color:var(--green) !important;
+}
+
+
+/* feed */
+.backdropFeed {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    overflow-y: scroll;
+    scroll-snap-type: y mandatory;
+    z-index: 0;
+    transition: 0.5s;
+}
+.backdropFeed.blur{
+    filter: blur(10px);
+}
+
+/* hide scrollbar (important for clean look) */
+.backdropFeed::-webkit-scrollbar {
+    display: none;
+}
+
+.feedItem {
+    width: 100%;
+    height: 100vh;
+    scroll-snap-align: start;
+    position: relative;
+    overflow: hidden;
+    background: black;
+}
+
+/* media fill */
+.feedItem video,
+.feedItem img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+}
+
+/* optional dark overlay for readability */
+.feedItem::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(
+        to bottom,
+        rgba(0,0,0,0.0),
+        rgba(0,0,0,0.5)
+    );
 }

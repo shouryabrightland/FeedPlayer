@@ -31,8 +31,12 @@ export function usePlayerValue(stateObj) {
   useEffect(() => {
     if (!stateObj) return;
 
-    setValue(stateObj.get()); // sync immediately
-    return stateObj.onUpdate(setValue);
+    const update = (newVal) => {
+      setValue(prev => (prev === newVal ? prev : newVal));
+    };
+
+    update(stateObj.get());
+    return stateObj.onUpdate(update);
   }, [stateObj]);
 
   return value;

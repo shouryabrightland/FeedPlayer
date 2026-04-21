@@ -9,6 +9,7 @@ export default class PlayerState {
     this.song = new state(null);
     this.currentTime = new state(0);
     this.duration = new state(0);
+    this.coverArtMinimize = new state(false);
 
     // 🎵 queue system
     this.queue = new state([]);
@@ -165,10 +166,12 @@ export default class PlayerState {
     return `${m}:${s}`;
   }
 
-  destroy() {
-  this.audio.pause();
-  this.audio.src = "";
+  
 
-  this.listeners = [];
-}
+  destroy() {
+    this.audio.pause();
+    this.audio.src = "";
+
+    this.listeners = [];
+  }
 }

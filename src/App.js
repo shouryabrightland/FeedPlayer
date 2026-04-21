@@ -1,6 +1,6 @@
 import { useRef, lazy, Suspense } from 'react';
 import { AppState, useAppState } from './AppState.class';
-import Login from './components/login/login';
+import Login, { fetchconfig, updateconfig } from './components/login/login';
 import PlayerState from './components/PlayerState.class';
 import Song from './components/song.class';
 import Footer from './components/footer';
@@ -29,11 +29,16 @@ function App() {
   const appstate = appstateRef.current;
   const playerstate = playerstateRef.current;
   const config = useAppState(appstate.CONFIG)
-
+  // if (!config) {
+  //   updateconfig("/data/", appstate, buildConfig)
+  //   if (!playerstate.isActive.get()) {
+  //     playerstate.isActive.set(true)
+  //   }
+  // }
   return (
     <div className="app">
       {!config ? <Login appstate={appstate} buildConfig={buildConfig} /> : <></>}
-     
+
       <Suspense fallback={<div></div>}>
         {config && <Player playstate={playerstate} appstate={appstate} />}
       </Suspense>

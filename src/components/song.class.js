@@ -13,11 +13,7 @@ export default class Song {
     /** @type {string}*/
     this.songUrl = basePath + (data.songUrl || "");
     /** @type {string[]}*/
-    this.media = (data.media || []).map(m => basePath + m);
-
-    /** @type {string}*/
-    this.video = data.video || null;
-    if (this.video) this.video = basePath + this.video
+    this.media = (data.media || []).map(m =>{return {type:m?.type,src:basePath + m?.src}});
 
     // 📊 Derived metadata
     /** @type {state}*/

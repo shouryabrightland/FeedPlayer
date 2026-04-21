@@ -84,3 +84,6 @@ body,
   overflow: hidden;
   text-overflow: ellipsis;
 }
+.content::-webkit-scrollbar{
+  display: none;
+}

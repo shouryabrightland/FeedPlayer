@@ -5,15 +5,7 @@ export default React.memo(function Login({appstate,buildConfig}){
     const handleChange = (e)=> {
         const key = e.target.value;
         if (key) {
-            fetch(key + "index.json")
-            .then(res => res.json())
-            .then((data) => {
-                appstate.CONFIG.set(buildConfig(data, key))
-                appstate.KEY.set(key)
-            })
-            .catch((e)=>{
-              console.log("invalid Key",e)
-            })
+            updateconfig(key,appstate,buildConfig)
         }
     }
     return (<div className={styles.login}>
@@ -25,3 +17,15 @@ export default React.memo(function Login({appstate,buildConfig}){
         </div>
     </div>)
 })
+
+export function updateconfig(key,appstate,buildConfig){
+    fetch(key + "index.json")
+            .then(res => res.json())
+            .then((data) => {
+                appstate.CONFIG.set(buildConfig(data, key))
+                appstate.KEY.set(key)
+            })
+            .catch((e)=>{
+              console.log("invalid Key",e)
+            })
+}
