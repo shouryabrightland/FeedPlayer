@@ -6,14 +6,23 @@
     bottom: 0;
     left: 0;
     right: 0;
-    background-color: rgba(0, 0, 0, 0.489);
+        background: linear-gradient(to right, rgba(0, 128, 0, 0.401) 0%, rgba(0, 0, 0, 0.453) 30% 70%, rgba(255, 0, 0, 0.401) 100%);
     color: white;
     --color:white;
+    background-size: 300% 100%;
 
     display: flex;
     align-items: center;
     justify-content: center;
     z-index: 20;
+    background-position-x: 50%;
+    transition: 0.5s;
+}
+.login.invalid{
+    background-position: 100%;
+}
+.login.correct{
+    background-position: 0%;
 }
 
 .popout{
@@ -24,11 +33,20 @@
     border-radius: 20px;
     padding: 20px;
     box-sizing: border-box;
+    position: absolute;
+    top: 50%;
+    left: 50%;
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
+    transform: translate(-50%,-50%);
     box-shadow: 0 0 10px -2px var(--black);
+    transition: 0.5s;
+}
+.login.correct .popout{
+    top: 100%;
+    transform: translate(-50%,0%);
 }
 .popout .header{
     font-size: 18px;

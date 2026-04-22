@@ -3,7 +3,11 @@ import { useState, useEffect } from "react";
 export class AppState{
     constructor(){
         this.KEY = new state(null)
+        this.isValidKey = new state(0) //0,1,-1 -> 3 states
         this.CONFIG = new state(null)
+        
+        //login
+        this.LoginNeeded = new state(false)
     }
 }
 

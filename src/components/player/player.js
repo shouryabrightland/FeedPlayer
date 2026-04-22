@@ -5,6 +5,7 @@ import { useRef } from "react";
 import { usePlayerValue } from "../state.class";
 import styles from "./player.module.css"
 import React from "react"
+import { useAppState } from "../../AppState.class";
 
 function ProgressBar(prop) {
     /** @type {PlayerState}*/
@@ -222,29 +223,31 @@ function CoverArt({state}) {
     )
 }
 
-export default React.memo(function Player(prop) {
-    console.log("Rendering Player");
-
+export default React.memo(function Player({playstate,appstate}) {
+    
+    const config = useAppState(appstate.CONFIG)
     /** @type {PlayerState}*/
-    const state = prop.playstate
-    const config = prop.config || null
+    const state = playstate
 
     const isActive = usePlayerValue(state.isActive)
     const [isMini, setIsMini] = useState(false)
     const song = usePlayerValue(state.song)
-
+    const coverArtMinimize = usePlayerValue(state.coverArtMinimize)
+    
+    
+    if (!config) return;
+    console.log("Rendering Player");
+    
+    
     const minimizePlayer = () => setIsMini(true)
     const maximisePlayer = () => setIsMini(false)
     const toggle = () => state.toggle()
-
+    
     const toggleLoop = () => state.isLoop.set(!state.isLoop.get());
     const toggleSuffle = () => state.suffle.set(!state.suffle.get());
     const next = () => state.next();
     const prev = () => state.prev();
-
-    console.log(song)
-
-    const coverArtMinimize = usePlayerValue(state.coverArtMinimize)
+    
     return (<>
         <div className={isActive ? styles.outerPlayerCard : `${styles.outerPlayerCard} ${styles.min}`}>
             <div className={styles.playerCard}>

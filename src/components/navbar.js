@@ -2,8 +2,10 @@ import { useAppState } from "../AppState.class"
 import styles from "./navbar.module.css"
 import React from "react"
 export default React.memo(function Navbar({appstate}) {
-    console.log("Rendering Navbar")
     const c = useAppState(appstate.CONFIG)
+    if(!c) return ;
+    
+    console.log("Rendering Navbar")
     return (
         <div className={`${styles.navbar} ${c?"":styles.hide}`}>
             <div className={styles.item}>

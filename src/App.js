@@ -1,10 +1,11 @@
-import { useRef, lazy, Suspense } from 'react';
-import { AppState, useAppState } from './AppState.class';
-import Login, { fetchconfig, updateconfig } from './components/login/login';
+import { useRef, lazy, Suspense, useEffect } from 'react';
+import { AppState } from './AppState.class';
+import Login from './components/login/login';
 import PlayerState from './components/PlayerState.class';
 import Song from './components/song.class';
 import Footer from './components/footer';
 import './App.css';
+import { handleKey , storeKey , getKey } from './key';
 
 const Playlist = lazy(() => import('./components/playlist/playlist'));
 const Navbar = lazy(() => import('./components/navbar'));
@@ -12,7 +13,6 @@ const Player = lazy(() => import('./components/player/player'));
 
 function App() {
   console.log("Rendering App")
-
   const playerstateRef = useRef(null);
   const appstateRef = useRef(null);
   if (!playerstateRef.current) {
@@ -22,49 +22,47 @@ function App() {
     appstateRef.current = new AppState()
   }
 
-
   /**
    * @type {AppState}
   */
   const appstate = appstateRef.current;
   const playerstate = playerstateRef.current;
-  const config = useAppState(appstate.CONFIG)
-  // if (!config) {
-  //   updateconfig("/data/", appstate, buildConfig)
-  //   if (!playerstate.isActive.get()) {
-  //     playerstate.isActive.set(true)
-  //   }
-  // }
+
+  useEffect(() => {
+    
+    const unsubscribe = appstate.KEY.onUpdate((k)=>handleKey(k,appstate));
+
+    const key = getKey();
+    if (key) {
+      appstate.KEY.set(key);
+    } else {
+      appstate.LoginNeeded.set(true);
+    }
+
+    return unsubscribe;
+  }, []);
+
   return (
     <div className="app">
-      {!config ? <Login appstate={appstate} buildConfig={buildConfig} /> : <></>}
+      {<Login appstate={appstate} />}
 
-      <Suspense fallback={<div></div>}>
-        {config && <Player playstate={playerstate} appstate={appstate} />}
+      <Suspense fallback={null}>
+        {<Player playstate={playerstate} appstate={appstate} />}
       </Suspense>
 
       <div className='content'>
-        <Suspense fallback={<div></div>}>
+        <Suspense fallback={null}>
           <Playlist appstate={appstate} playstate={playerstate} />
         </Suspense>
-        <Footer />
+        <Footer appstate={appstate} />
 
       </div>
-      <Suspense fallback={<></>}>
+      <Suspense fallback={null}>
         <Navbar appstate={appstate} />
       </Suspense>
     </div>
   );
 
 }
-
-function buildConfig(data, KEY) {
-  return {
-    ...data,
-    song_list: data.song_list.map(s => new Song(s, KEY)),
-    _key: KEY
-  }
-}
-
 
 export default App;

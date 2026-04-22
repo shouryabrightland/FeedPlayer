@@ -47,9 +47,11 @@ const PlayListMeta = React.memo(function PlayListMeta({ songList }) {
 })
 
 function Playlist({ appstate, playstate }) {
-    console.log("Rendering Playlist")
+    const CONFIG = useAppState(appstate.CONFIG)
 
-    const CONFIG = useAppState(appstate.CONFIG) || null
+    if (!CONFIG) return;
+    
+    console.log("Rendering Playlist")
     console.log(CONFIG)
     const key = CONFIG?._key
 
