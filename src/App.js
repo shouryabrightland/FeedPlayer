@@ -55,7 +55,6 @@ function App() {
           <Playlist appstate={appstate} playstate={playerstate} />
         </Suspense>
         <Footer appstate={appstate} />
-
       </div>
       <Suspense fallback={null}>
         <Navbar appstate={appstate} />

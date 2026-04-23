@@ -5,7 +5,7 @@ import { useRef } from "react";
 import { usePlayerValue } from "../state.class";
 import styles from "./player.module.css"
 import React from "react"
-import { useAppState } from "../../AppState.class";
+import { AppState, useAppState } from "../../AppState.class";
 
 function ProgressBar(prop) {
     /** @type {PlayerState}*/
@@ -14,11 +14,12 @@ function ProgressBar(prop) {
     const wasPlayingRef = useRef(false);
     const currentTime = usePlayerValue(state.currentTime)
     const song = usePlayerValue(state.song);
-    const duration = song ? song.getFormattedDuration() : "0:00";
     const durationRaw = state.duration.get();
+    const duration = state.formatTime(durationRaw);
     const progress = durationRaw
         ? (currentTime / durationRaw) * 100
         : 0;
+    const buffer = state.bufferedPercent.get()
 
     const [dragging, setDragging] = useState(false);
 
@@ -28,7 +29,7 @@ function ProgressBar(prop) {
         const move = (e) => handleSeek(e);
         const up = () => {
             setDragging(false);
-            if (wasPlayingRef.current) state.resume();
+            if (wasPlayingRef.current) state.play();
         };
 
         window.addEventListener("pointermove", move);
@@ -71,6 +72,7 @@ function ProgressBar(prop) {
         <div className={styles.progressBar} ref={barRef} onPointerDown={handlePointerDown}>
             <div className={styles.bar}>
                 <div className={styles.progress} style={{ width: progress + "%" }}></div>
+                <div className={styles.buffer} style={{ width: buffer + "%" }}></div>
             </div>
             <div className={styles.label}>
                 <span className={styles.start}>{state?.formatTime(currentTime)}</span>
@@ -222,8 +224,10 @@ function CoverArt({state}) {
         </div>
     )
 }
-
-export default React.memo(function Player({playstate,appstate}) {
+/**
+ * @param {{playstate:PlayerState,appstate:AppState}}
+*/
+function Player({playstate,appstate}) {
     
     const config = useAppState(appstate.CONFIG)
     /** @type {PlayerState}*/
@@ -326,7 +330,9 @@ export default React.memo(function Player({playstate,appstate}) {
                 </div>
             </div>
         </div></>)
-})
+}
+
+export default React.memo(Player)
 
 function useBackground(media = []) {
     const [index, setIndex] = useState(0);

@@ -1,90 +1,210 @@
 import state from "./state.class";
+
 export default class PlayerState {
   constructor() {
+    // 🎧 main audio
     this.audio = new Audio();
 
-    // 🎯 reactive states
+    // 🎧 preloaded next audio
+    this.nextAudio = null;
+
+    // 🎯 states
     this.isActive = new state(false);
     this.isPlaying = new state(false);
+    this.isLoading = new state(false);
+
     this.song = new state(null);
     this.currentTime = new state(0);
     this.duration = new state(0);
+    this.bufferedPercent = new state(0);
+
     this.coverArtMinimize = new state(false);
 
-    // 🎵 queue system
+    // 🎵 queue
     this.queue = new state([]);
     this.queueIndex = new state(0);
+
+    this.prevSong = new state(null);
+    this.nextSong = new state(null);
 
     this.isLoop = new state(false);
     this.suffle = new state(false);
 
-    // 🎧 audio events
-    this.audio.addEventListener("timeupdate", () => {
-      const t = this.audio.currentTime;
+    this._bindAudioEvents(this.audio);
+  }
 
-      // throttle updates
+  // =========================
+  // 🎧 AUDIO EVENTS
+  // =========================
+
+  _bindAudioEvents(audio) {
+    audio.addEventListener("timeupdate", () => {
+      const t = audio.currentTime;
       if (Math.abs(t - this.currentTime.get()) > 0.25) {
         this.currentTime.set(t);
       }
     });
 
-    this.audio.addEventListener("loadedmetadata", () => {
-      this.duration.set(this.audio.duration || 0);
+    audio.addEventListener("loadedmetadata", () => {
+      this.duration.set(audio.duration || 0);
     });
 
-    this.audio.addEventListener("play", () => {
+    audio.addEventListener("progress", () => {
+      if (!audio.duration) return;
+
+      try {
+        const buffered = audio.buffered;
+        if (buffered.length > 0) {
+          const end = buffered.end(buffered.length - 1);
+          const percent = (end / audio.duration) * 100;
+          this.bufferedPercent.set(percent);
+        }
+      } catch {}
+    });
+
+    audio.addEventListener("play", () => {
       this.isPlaying.set(true);
     });
 
-    this.audio.addEventListener("pause", () => {
+    audio.addEventListener("pause", () => {
       this.isPlaying.set(false);
     });
 
-    this.audio.addEventListener("ended", () => {
+    audio.addEventListener("ended", () => {
       this.next();
     });
   }
 
-  // 🎵 Load full queue and start
-  loadQueue(list = [], startIndex = 0) {
-    if (!Array.isArray(list) || list.length === 0) {
-      console.error("❌ Invalid queue");
-      return;
-    }
+  // =========================
+  // 🎵 QUEUE CONTROL
+  // =========================
 
-    const safeIndex = Math.max(0, Math.min(startIndex, list.length - 1));
+  loadQueue(list = [], startIndex = 0) {
+    if (!Array.isArray(list) || list.length === 0) return;
+
+    const i = Math.max(0, Math.min(startIndex, list.length - 1));
 
     this.queue.set(list);
-    this.queueIndex.set(safeIndex);
+    this.queueIndex.set(i);
 
     this._playCurrent();
   }
 
-  // ▶️ internal play (queue only)
-  _playCurrent() {
-    const q = this.queue.get();
-    const i = this.queueIndex.get();
-    const song = q[i];
+  _getCurrentSong() {
+    return this.queue.get()[this.queueIndex.get()] || null;
+  }
 
-    if (!song || !song.songUrl) {
-      console.error("❌ Invalid song in queue");
-      return;
+  _getNextIndex() {
+    const q = this.queue.get();
+    if (!q.length) return 0;
+
+    if (this.suffle.get()) {
+      return Math.floor(Math.random() * q.length);
     }
 
-    // avoid reloading same song
-    if (!this.song.get() || this.song.get().songUrl !== song.songUrl) {
-      this.audio.src = song.songUrl;
-      this.song.set(song);
+    return (this.queueIndex.get() + 1) % q.length;
+  }
+
+  _getPrevIndex() {
+    const q = this.queue.get();
+    if (!q.length) return 0;
+
+    return (this.queueIndex.get() - 1 + q.length) % q.length;
+  }
+
+  // =========================
+  // ▶️ CORE PLAY LOGIC
+  // =========================
+
+  _playCurrent() {
+    const song = this._getCurrentSong();
+    if (!song) return;
+
+    // try reuse preloaded audio
+    if (this._usePreloaded(song)) {
+      this.audio.play();
+    } else {
+      this._loadSong(song);
+      this.audio.play().catch(() => {
+        this.isPlaying.set(false);
+      });
     }
 
     this.isActive.set(true);
-    this.audio.play().catch(() => {
-      this.isPlaying.set(false);
-    });
+    this._updateNeighbors();
   }
 
-  // ▶️ Resume (NOT play new song)
-  resume() {
+  _loadSong(song) {
+    this.isLoading.set(true);
+
+    this.audio.src = song.songUrl;
+    this.song.set(song);
+
+    const onReady = () => {
+      this.isLoading.set(false);
+      this.audio.removeEventListener("canplay", onReady);
+    };
+
+    this.audio.addEventListener("canplay", onReady);
+  }
+
+  // =========================
+  // ⚡ PRELOAD SYSTEM
+  // =========================
+
+  _preloadNext() {
+    const next = this.nextSong.get();
+    if (!next) return;
+
+    // already preloaded
+    if (this.nextAudio && this.nextAudio.src === next.songUrl) return;
+
+    this.nextAudio = new Audio();
+    this.nextAudio.preload = "auto";
+    this.nextAudio.src = next.songUrl;
+  }
+
+  _usePreloaded(song) {
+    if (this.nextAudio && this.nextAudio.src === song.songUrl) {
+      this.audio.pause();
+
+      this.audio = this.nextAudio;
+      this.nextAudio = null;
+
+      this._bindAudioEvents(this.audio);
+      this.song.set(song);
+
+      return true;
+    }
+    return false;
+  }
+
+  // =========================
+  // 🔄 NAVIGATION
+  // =========================
+
+  next() {
+    if (!this.isLoop.get()) {
+      this.queueIndex.set(this._getNextIndex());
+    }
+    this._playCurrent();
+  }
+
+  prev() {
+    if (this.currentTime.get() > 3) {
+      this.seek(0);
+      return;
+    }
+
+    this.queueIndex.set(this._getPrevIndex());
+    this._playCurrent();
+  }
+
+  // =========================
+  // 🎛 CONTROLS
+  // =========================
+
+  play() {
     if (!this.audio.src) {
       this._playCurrent();
       return;
@@ -97,67 +217,68 @@ export default class PlayerState {
   }
 
   toggle() {
-    this.isPlaying.get() ? this.pause() : this.resume();
+    this.isPlaying.get() ? this.pause() : this.play();
   }
 
-  // ⏭ Next
-  next() {
-    if (!this.isLoop.get()) {
-
-      const q = this.queue.get();
-      if (!q.length) return;
-
-      let i = this.queueIndex.get();
-      i = this.suffle.get() ? Math.floor(Math.random() * q.length) : (i + 1) % q.length;
-
-      this.queueIndex.set(i);
-    }
-    this.seek(0);
-    this._playCurrent();
+  seek(t) {
+    this.audio.currentTime = t;
   }
 
-  // ⏮ Prev
-  prev() {
-    const q = this.queue.get();
-    if (!q.length) return;
-
-    // Spotify behavior
-    if (this.currentTime.get() > 3) {
-      this.seek(0);
-      return;
-    }
-
-    let i = this.queueIndex.get();
-    i = (i - 1 + q.length) % q.length;
-
-    this.queueIndex.set(i);
-    this._playCurrent();
-  }
-
-  // ⏩ Seek
-  seek(time) {
-    this.audio.currentTime = time;
-  }
-
-  // 🔊 Volume
   setVolume(v) {
     this.audio.volume = Math.max(0, Math.min(1, v));
   }
 
-  // ⏹ Stop everything
-  stop() {
-    this.audio.pause();
-    this.audio.currentTime = 0;
+  // =========================
+  // 🧠 NEIGHBOR MGMT
+  // =========================
 
-    this.isPlaying.set(false);
+  _updateNeighbors() {
+    const q = this.queue.get();
+    const i = this.queueIndex.get();
+
+    this.prevSong.set(q[i - 1] || null);
+    this.nextSong.set(q[i + 1] || null);
+
+    this._preloadNext();
+  }
+
+  // =========================
+  // 🧹 CLEANUP (CONTROLLED)
+  // =========================
+
+  clearCurrentBuffer() {
+    this.audio.pause();
+    this.audio.removeAttribute("src");
+    this.audio.load();
+
+    this.bufferedPercent.set(0);
+    this.isLoading.set(false);
+  }
+
+  clearNextBuffer() {
+    if (this.nextAudio) {
+      this.nextAudio.pause();
+      this.nextAudio.src = "";
+      this.nextAudio = null;
+    }
+  }
+
+  stop() {
+    this.pause();
+    this.seek(0);
+
     this.isActive.set(false);
     this.song.set(null);
 
     this.queue.set([]);
     this.queueIndex.set(0);
+
+    this.clearNextBuffer();
   }
 
-  // 📈 Helpers
+  // =========================
+  // ⏱ UTILS
+  // =========================
 
   formatTime(sec) {
     if (!sec) return "0:00";
@@ -166,12 +287,9 @@ export default class PlayerState {
     return `${m}:${s}`;
   }
 
-  
-
   destroy() {
-    this.audio.pause();
+    this.stop();
     this.audio.src = "";
-
-    this.listeners = [];
+    this.nextAudio = null;
   }
 }

@@ -8,8 +8,10 @@ export class AppState{
         
         //login
         this.LoginNeeded = new state(false)
+        
     }
 }
+
 
 
 export function useAppState(stateObj) {

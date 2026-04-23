@@ -26,7 +26,9 @@ export default React.memo(function List(prop) {
         </div>
     );
 })
-
+/**
+ * @param {{list:Song[],index:int,playstate:PlayerState,song:Song}} prop
+*/
 function Card({ list, index, playstate, song }) {
     const currentSong = usePlayerValue(playstate.song);
     const isActive = currentSong?.songUrl === song.songUrl;

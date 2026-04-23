@@ -7,42 +7,10 @@ import templateFX from "../templateFX.comp"
 import React from "react"
 import { useAppState } from "../../AppState.class"
 
-function useTotalDuration(list = []) {
-    const [total, setTotal] = useState(0);
-
-    useEffect(() => {
-        if (!list.length) return;
-
-        const update = () => {
-            const sum = list.reduce((acc, song) => acc + (song.duration.get() || 0), 0);
-            setTotal(sum);
-        };
-
-        // subscribe to all songs
-        const cleanups = list.map(song =>
-            song.duration.onUpdate(update)
-        );
-
-        // initial calc
-        update();
-
-        return () => cleanups.forEach(fn => fn && fn());
-    }, [list]);
-
-    return total;
-}
-
-function formatTotal(sec) {
-    const m = Math.floor(sec / 60);
-    return m ? `${m} min` : templateFX();
-}
 
 const PlayListMeta = React.memo(function PlayListMeta({ songList }) {
     console.log("rendering Playlist Meta")
-    const totalDuration = useTotalDuration(songList);
-    return (<div className={`pt2 ${styles.playlistInfo}`}>{songList?.length ? `${songList.length || 0} songs` : templateFX()}
-        <span className="dot"></span>
-        {formatTotal(totalDuration)}</div>)
+    return (<div className={`pt2 ${styles.playlistInfo}`}>{songList?.length ? `${songList.length || 0} songs` : templateFX()}</div>)
 
 })
 
