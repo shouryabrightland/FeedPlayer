@@ -82,140 +82,260 @@ function ProgressBar(prop) {
 
 }
 
-const Player_backdrop = React.memo(function Player_backdrop({ media = [], state }) {
+const Player_backdrop = React.memo(function Player_backdrop({ media = [], state, isMini }) {
     const containerRef = useRef(null);
-    const itemRefs = useRef([]);
+    const itemHeightRef = useRef(window.innerHeight);
+    const videoRefs = useRef({});
+    const isUserActiveRef = useRef(false);
+    const idleTimeoutRef = useRef(null);
 
-    useEffect(() => {
-        if (!containerRef.current) return;
+    const [index, setIndex] = useState(0);
 
-        const observer = new IntersectionObserver(
-            (entries) => {
-                entries.forEach((entry) => {
-                    const video = entry.target.querySelector("video");
-
-                    if (!video) return;
-
-                    if (entry.isIntersecting) {
-                        if (state.isPlaying.get()) {
-                            video.play().catch(() => { });
-                        }
-                    } else {
-                        video.pause();
-                    }
-                });
-            },
-            {
-                threshold: 0.6 // only active when mostly visible
-            }
-        );
-
-        itemRefs.current.forEach((el) => {
-            if (el) observer.observe(el);
-        });
-
-        return () => observer.disconnect();
-    }, [media, state]);
-
-    // sync pause/play with player
-    useEffect(() => {
-        const cleanup = state.isPlaying.onUpdate((isPlaying) => {
-            itemRefs.current.forEach((el) => {
-                if (!el) return;
-                const video = el.querySelector("video");
-                if (!video) return;
-
-                if (isPlaying) {
-                    video.play().catch(() => { });
-                } else {
-                    video.pause();
-                }
-            });
-        });
-
-        return cleanup;
-    }, [state]);
-
-    const baseList = useMemo(() => shuffleArray(media), [media]);
-
-    useEffect(() => {
-        const container = containerRef.current;
-        if (!container) return;
-
-        const itemHeight = window.innerHeight;
-        const middleIndex = baseList.length * 2; // center of 5 blocks
-
-        container.scrollTop = middleIndex * itemHeight;
-    }, [baseList]);
-
-    useEffect(() => {
-        const container = containerRef.current;
-        if (!container) return;
-
-        let timeout;
-
-        const handleScroll = () => {
-            clearTimeout(timeout);
-
-            timeout = setTimeout(() => {
-                const itemHeight = window.innerHeight;
-                const total = baseList.length;
-
-                const currentIndex = Math.round(container.scrollTop / itemHeight);
-
-                // reposition silently
-                if (currentIndex < total || currentIndex > total * 3) {
-                    container.scrollTop =
-                        (currentIndex % total + total * 2) * itemHeight;
-                }
-            }, 120); // wait for scroll to stop
-        };
-
-        container.addEventListener("scroll", handleScroll);
-        return () => container.removeEventListener("scroll", handleScroll);
-    }, [baseList]);
-
-    const loopedMedia = useMemo(() => {
-        return [
-            ...baseList,
-            ...baseList,
-            ...baseList,
-            ...baseList,
-            ...baseList
-        ];
-    }, [baseList]);
-
+    const isPlaying = usePlayerValue(state.isPlaying);
     const coverArtMinimize = usePlayerValue(state.coverArtMinimize);
 
+    // ✅ resize safe
+    useEffect(() => {
+        const update = () => {
+            itemHeightRef.current = window.innerHeight;
+        };
+        window.addEventListener("resize", update);
+        return () => window.removeEventListener("resize", update);
+    }, []);
+
+    // ✅ scroll → index (disabled in mini)
+    useEffect(() => {
+        if (isMini) return;
+
+        const container = containerRef.current;
+        if (!container) return;
+
+        let ticking = false;
+
+        const onScroll = () => {
+            if (ticking) return;
+
+            requestAnimationFrame(() => {
+                const h = itemHeightRef.current;
+                const i = Math.round(container.scrollTop / h);
+                setIndex(i);
+                ticking = false;
+            });
+
+            ticking = true;
+        };
+
+        container.addEventListener("scroll", onScroll);
+        return () => container.removeEventListener("scroll", onScroll);
+    }, [isMini]);
+
+    // ✅ initial position (only once)
+    useEffect(() => {
+        if (index !== 0) return;
+
+        const container = containerRef.current;
+        if (!container || !media.length) return;
+
+        const h = itemHeightRef.current;
+        const startIndex = media.length * 100;
+
+        container.scrollTop = startIndex * h;
+        setIndex(startIndex);
+    }, [media]);
+
+    // ✅ virtualization
+    const visibleItems = useMemo(() => {
+        const buffer = 2;
+        const items = [];
+
+        for (let i = index - buffer; i <= index + buffer; i++) {
+            const realIndex =
+                ((i % media.length) + media.length) % media.length;
+
+            items.push({
+                ...media[realIndex],
+                virtualIndex: i,
+                realIndex
+            });
+        }
+
+        return items;
+    }, [index, media]);
+
+    // 🎯 VIDEO CONTROL (STRICT SYNC WITH AUDIO)
+    useEffect(() => {
+        Object.entries(videoRefs.current).forEach(([key, video]) => {
+            const vIndex = Number(key);
+            const distance = Math.abs(vIndex - index);
+
+            if (!video) return;
+
+            // ❌ GLOBAL PAUSE (mini OR audio paused)
+            if (isMini || !isPlaying) {
+                video.pause();
+                return;
+            }
+
+            // 🎯 CURRENT
+            if (distance === 0) {
+                video.preload = "auto";
+                video.currentTime = 0; // optional: keep fresh sync feel
+                video.play().catch(() => { });
+            }
+
+            // 🎯 NEIGHBOR
+            else if (distance === 1) {
+                video.preload = "metadata";
+                video.pause();
+            }
+
+            // ❌ FAR
+            else {
+                video.pause();
+                video.removeAttribute("src");
+                video.load();
+            }
+        });
+    }, [index, isPlaying, isMini]);
+
+    // 🎯 USER ACTIVITY TRACK
+    useEffect(() => {
+        if (isMini) return;
+
+        const container = containerRef.current;
+        if (!container) return;
+
+        const markActive = () => {
+            isUserActiveRef.current = true;
+
+            clearTimeout(idleTimeoutRef.current);
+            idleTimeoutRef.current = setTimeout(() => {
+                isUserActiveRef.current = false;
+            }, 20000); // 20s idle
+        };
+
+        container.addEventListener("pointerdown", markActive);
+        container.addEventListener("touchstart", markActive);
+        container.addEventListener("wheel", markActive);
+
+        return () => {
+            container.removeEventListener("pointerdown", markActive);
+            container.removeEventListener("touchstart", markActive);
+            container.removeEventListener("wheel", markActive);
+        };
+    }, [isMini]);
+
+    // 🎯 SMART AUTO SCROLL
+    useEffect(() => {
+        if (isMini) return;
+        if (!media.length) return;
+        if (!isPlaying) return;
+
+        const container = containerRef.current;
+        if (!container) return;
+
+        const interval = setInterval(() => {
+            // ❌ user interacting → stop immediately
+            if (isUserActiveRef.current) return;
+
+            // ✅ allow in BOTH modes (you wanted that hint UX)
+            const h = itemHeightRef.current;
+            const nextIndex = index + 1;
+
+            container.scrollTo({
+                top: nextIndex * h,
+                behavior: "smooth"
+            });
+
+            setIndex(nextIndex);
+        }, 2000);
+
+        return () => clearInterval(interval);
+    }, [index, isMini, media]);
+
     return (
-        <div className={`${styles.backdropFeed} ${coverArtMinimize?"":styles.blur}`} ref={containerRef}>
-            {loopedMedia.map((item, i) => (
-                <div
-                    key={i}
-                    className={styles.feedItem}
-                    ref={(el) => (itemRefs.current[i] = el)}
-                >
-                    {item.type === "video" ? (
-                        <video
-                            src={item.src}
-                            muted
-                            loop
-                            playsInline
-                            preload="metadata"
-                        />
-                    ) : (
-                        <img src={item.src} alt="" />
-                    )}
-                </div>
-            ))}
+        <div
+            ref={containerRef}
+            className={`${styles.backdropFeed} ${coverArtMinimize ? "" : styles.blur}`}
+            style={{
+                overflowY: isMini ? "hidden" : "scroll",
+                height: "100vh"
+            }}
+        >
+            <div
+                style={{
+                    height: `${media.length * 1000 * itemHeightRef.current}px`,
+                    position: "relative"
+                }}
+            >
+                {visibleItems.map((item) => {
+                    const distance = Math.abs(item.virtualIndex - index);
+                    const top = item.virtualIndex * itemHeightRef.current;
+
+                    // 🎯 freeze visuals in mini
+                    const scale = isMini ? 1 : Math.max(0.9, 1 - distance * 0.1);
+                    const opacity = isMini ? 1 : Math.max(0.3, 1 - distance * 0.4);
+
+                    const isNear = distance <= 1;
+
+                    return (
+                        <div
+                            key={item.virtualIndex}
+                            className={styles.feedItem}
+                            style={{
+                                position: "absolute",
+                                transform: `translateY(${top}px)`,
+                                height: "100vh",
+                                width: "100%"
+                            }}
+                        >
+                            {item.type === "video" ? (
+                                isNear && (
+                                    <video
+                                        ref={(el) => {
+                                            if (el) videoRefs.current[item.virtualIndex] = el;
+                                            else delete videoRefs.current[item.virtualIndex];
+                                        }}
+                                        src={item.src}
+                                        muted
+                                        loop
+                                        playsInline
+                                        preload="metadata"
+                                        style={{
+                                            transform: `scale(${scale})`,
+                                            opacity,
+                                            transition: isMini
+                                                ? "none"
+                                                : "transform 0.2s ease-out, opacity 0.2s ease-out"
+                                        }}
+                                    />
+                                )
+                            ) : (
+                                <img
+                                    src={item.src}
+                                    alt=""
+                                    loading="lazy"
+                                    style={{
+                                        transform: `scale(${scale})`,
+                                        opacity,
+                                        transition: isMini
+                                            ? "none"
+                                            : "transform 0.2s ease-out, opacity 0.2s ease-out"
+                                    }}
+                                />
+                            )}
+                        </div>
+                    );
+                })}
+            </div>
         </div>
     );
 });
 
-function CoverArt({state}) {
+function CoverArt({ state }) {
     const minimize = usePlayerValue(state.coverArtMinimize)
     const song = usePlayerValue(state.song)
-    const toggle = ()=> state.coverArtMinimize.set(!minimize)
+    const toggle = () => state.coverArtMinimize.set(!minimize)
     return (
         <div className={`${styles.coverArt} ${minimize ? styles.minimize : ""}`}>
             <div className={styles.thumbnail}>
@@ -227,8 +347,8 @@ function CoverArt({state}) {
 /**
  * @param {{playstate:PlayerState,appstate:AppState}}
 */
-function Player({playstate,appstate}) {
-    
+function Player({ playstate, appstate }) {
+
     const config = useAppState(appstate.CONFIG)
     /** @type {PlayerState}*/
     const state = playstate
@@ -237,21 +357,21 @@ function Player({playstate,appstate}) {
     const [isMini, setIsMini] = useState(false)
     const song = usePlayerValue(state.song)
     const coverArtMinimize = usePlayerValue(state.coverArtMinimize)
-    
-    
+
+
     if (!config) return;
     console.log("Rendering Player");
-    
-    
+
+
     const minimizePlayer = () => setIsMini(true)
     const maximisePlayer = () => setIsMini(false)
     const toggle = () => state.toggle()
-    
+
     const toggleLoop = () => state.isLoop.set(!state.isLoop.get());
     const toggleSuffle = () => state.suffle.set(!state.suffle.get());
     const next = () => state.next();
     const prev = () => state.prev();
-    
+
     return (<>
         <div className={isActive ? styles.outerPlayerCard : `${styles.outerPlayerCard} ${styles.min}`}>
             <div className={styles.playerCard}>
@@ -274,9 +394,10 @@ function Player({playstate,appstate}) {
                 <Player_backdrop
                     media={song?.media}
                     state={state}
+                    isMini={isMini}
                 />
 
-                <div className={`${styles.main} ${coverArtMinimize? styles.enableFeed:""}`}>
+                <div className={`${styles.main} ${coverArtMinimize ? styles.enableFeed : ""}`}>
                     <div className={styles.header}>
                         <div onClick={minimizePlayer}>
                             <span>

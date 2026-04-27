@@ -6,6 +6,9 @@
 .pnp.js
 
 /public/data
+/public/suilight
+
+.txt
 
 # testing
 /coverage

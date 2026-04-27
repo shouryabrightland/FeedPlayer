@@ -27,7 +27,7 @@ body,
   transform: translate(-50%,0);
   height: 100vh;
   height:101dvh;
-  max-height: 700px;
+  /* max-height: 700px; */
   overflow: hidden;
   background-color: rgb(19, 19, 19);
   padding-top: env(safe-area-inset-top);
