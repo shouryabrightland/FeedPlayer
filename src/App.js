@@ -1,5 +1,5 @@
 import { useRef, lazy, Suspense, useEffect } from 'react';
-import { AppState } from './AppState.class';
+import { AppState, useAppState } from './AppState.class';
 import Login from './components/login/login';
 import PlayerState from './components/PlayerState.class';
 import Song from './components/song.class';
@@ -27,20 +27,22 @@ function App() {
   */
   const appstate = appstateRef.current;
   const playerstate = playerstateRef.current;
-
+  const isValidKey = useAppState(appstate.isValidKey);
   useEffect(() => {
-    
     const unsubscribe = appstate.KEY.onUpdate((k)=>handleKey(k,appstate));
-
-    const key = getKey();
-    if (key) {
-      appstate.KEY.set(key);
-    } else {
-      appstate.LoginNeeded.set(true);
-    }
-
     return unsubscribe;
   }, []);
+
+  useEffect(()=>{
+    const isvalid = appstate.isValidKey.get();
+    if (isvalid == 1) return;
+    else if(isvalid == 0){
+      const key = getKey();
+      appstate.KEY.set(key);
+    }else{
+      appstate.LoginNeeded.set(true);
+    }
+  },[isValidKey])
 
   return (
     <div className="app">

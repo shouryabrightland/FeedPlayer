@@ -1,11 +1,12 @@
 import styles from "./playlist.module.css"
 import List from "./list"
 import PlayerState from "../PlayerState.class"
-import { Play_btn } from "../sm_components"
+import { getAverageColor, PlayBtn } from "../sm_components"
 import { useState, useEffect } from "react"
 import templateFX from "../templateFX.comp"
 import React from "react"
 import { useAppState } from "../../AppState.class"
+import { encodeKey } from "../../key"
 
 
 const PlayListMeta = React.memo(function PlayListMeta({ songList }) {
@@ -16,16 +17,24 @@ const PlayListMeta = React.memo(function PlayListMeta({ songList }) {
 
 function Playlist({ appstate, playstate }) {
     const CONFIG = useAppState(appstate.CONFIG)
+    const [BGcolor,setBGcolor] = useState("black")
+
+    const key = CONFIG?._key
+    const title = CONFIG?.title || null
+    const Description = CONFIG?.description || null
+    const thumbnail_url = CONFIG?.thumbnail || null
+    useEffect(()=>{
+        if(!key || !thumbnail_url) return;
+        
+        getAverageColor(key+thumbnail_url).then((v)=>{
+            setBGcolor(v)
+        })
+    },[thumbnail_url])
 
     if (!CONFIG) return;
     
     console.log("Rendering Playlist")
     console.log(CONFIG)
-    const key = CONFIG?._key
-
-    const title = CONFIG?.title || null
-    const Description = CONFIG?.description || null
-    const thumbnail_url = CONFIG?.thumbnail || null
 
     /** @type {Song[]} */
     const list = CONFIG?.["song_list"] || []
@@ -34,6 +43,7 @@ function Playlist({ appstate, playstate }) {
 
     /**@type {PlayerState}*/
     const PlayState = playstate
+
     if (!PlayState) {
         console.error("no player state provided")
         return <>err</>
@@ -41,7 +51,8 @@ function Playlist({ appstate, playstate }) {
 
     return (
         <div className={styles.playlist}>
-            <div className={`${styles.firstpage} ${isReady ? "" : styles.firstpageHidden}`}>
+            <div className={`${styles.firstpage} ${isReady ? "" : styles.firstpageHidden}`}
+                style={{'--bg':`${BGcolor}`}}>
                 <div className={styles.thumbnail}>
                     {thumbnail_url && <img src={key + thumbnail_url} />}
                 </div>
@@ -52,7 +63,7 @@ function Playlist({ appstate, playstate }) {
                         else PlayState.toggle()
 
                     }}>
-                        <Play_btn state={PlayState} />
+                        <PlayBtn state={PlayState} />
                     </div>}
                 </div>
 
@@ -66,7 +77,7 @@ function Playlist({ appstate, playstate }) {
                                 <svg role="img" aria-hidden="true" className="icon" viewBox="0 0 24 24"><path d="M5.21 1.57a6.76 6.76 0 0 1 6.708 1.545.124.124 0 0 0 .165 0 6.74 6.74 0 0 1 5.715-1.78l.004.001a6.8 6.8 0 0 1 5.571 5.376v.003a6.69 6.69 0 0 1-1.49 5.655l-7.954 9.48a2.518 2.518 0 0 1-3.857 0L2.12 12.37A6.68 6.68 0 0 1 .627 6.714 6.76 6.76 0 0 1 5.21 1.57m3.12 1.803a4.757 4.757 0 0 0-5.74 3.725l-.001.002a4.68 4.68 0 0 0 1.049 3.969l.009.01 7.958 9.485a.518.518 0 0 0 .79 0l7.968-9.495a4.69 4.69 0 0 0 1.049-3.965 4.8 4.8 0 0 0-3.931-3.794 4.74 4.74 0 0 0-4.023 1.256l-.008.008a2.123 2.123 0 0 1-2.9 0l-.007-.007a4.76 4.76 0 0 0-2.214-1.194z"></path></svg>
                             </div>
 
-                            <div className={styles.opt}>
+                            <div className={styles.opt} onClick={()=>handleShare(key)}>
                                 <svg role="img" aria-hidden="true" className="icon" viewBox="0 0 24 24">
                                     <path d="M18.5 4a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3M15 5.5a3.5 3.5 0 1 1 1.006 2.455L9 12l7.006 4.045a3.5 3.5 0 1 1-.938 1.768l-6.67-3.85a3.5 3.5 0 1 1 0-3.924l6.67-3.852A3.5 3.5 0 0 1 15 5.5m-9.5 5a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3m13 6.5a1.5 1.5 0 1 0-.001 3 1.5 1.5 0 0 0 .001-3"></path>
                                 </svg>
@@ -84,5 +95,22 @@ function Playlist({ appstate, playstate }) {
         </div>
     )
 }
+
+
+const handleShare = async (key) => {
+    key = encodeKey(key)
+  const shareUrl = `${window.location.origin}?key=${key}`;
+
+  if (navigator.share) {
+    await navigator.share({
+      title: "My Playlist",
+      text: "Listen to this",
+      url: shareUrl
+    });
+  } else {
+    await navigator.clipboard.writeText(shareUrl);
+    alert("Link copied!");
+  }
+};
 
 export default React.memo(Playlist)

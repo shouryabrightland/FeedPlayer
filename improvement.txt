@@ -3,10 +3,12 @@ shareable
 like btn
 key page
 read me
-color based on thumbnail
 edit images for thumbnail
+
 offline workable
 outer progress bar
+
+color based on thumbnail
 
 - files to add
 family

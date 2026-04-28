@@ -1,4 +1,5 @@
 import { AppState, useAppState } from "../../AppState.class"
+import { decodeKey } from "../../key"
 import styles from "./login.module.css"
 import React from "react"
 /**
@@ -14,7 +15,7 @@ function Login({appstate,buildConfig}){
 
     const handleChange = (e)=> {
         const key = e.target.value;
-        if (key) appstate.KEY.set(key)
+        if (key) appstate.KEY.set(decodeKey(key))
     }
 
     return (<div className={`${styles.login} ${validKey==1?styles.correct:""} ${validKey==-1?styles.invalid:""}`}>
