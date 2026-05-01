@@ -1,5 +1,5 @@
 import { AppState, useAppState } from "../../AppState.class"
-import { decodeKey } from "../../key"
+import { decodeKey } from "../../core/key"
 import styles from "./login.module.css"
 import React from "react"
 /**

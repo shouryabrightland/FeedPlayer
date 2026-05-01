@@ -1,4 +1,4 @@
-import { useAppState } from "../AppState.class"
+import { AppState, useAppState } from '../core/AppState.class';
 import styles from "./footer.module.css"
 import React from "react"
 export default React.memo(function Footer({appstate}){

@@ -1,0 +1,214 @@
+.Home{
+    width: 100%;
+    height: 100vh;
+    color: white;
+}
+.Home > .header{
+    width: 100%;
+    padding: 20px 10px ;
+    box-sizing: border-box;
+    font-size: 20px;
+    color: white;
+    font-weight: 700;
+    box-shadow: 0 0 10px -6px var(--grey);
+}
+.list{
+    padding: 20px 0;
+}
+.list .heading{
+    text-align: center;
+    width: 100%;
+    padding: 10px 0;
+    color: var(--grey);
+
+}
+
+.item {
+    max-width: 100%;
+    box-sizing: border-box;
+    border-radius: 5px;
+    display: flex;
+    align-items: center;
+    padding: 10px;
+    margin: 5px 8px;
+    transition: background 0.2s ease, box-shadow 0.2s ease;
+}
+
+.item:hover,
+.active {
+    background-color: rgba(255, 255, 255, 0.042);
+    box-shadow: 0 0 10px -5px black;
+}
+
+/* left thumbnail */
+.side {
+    aspect-ratio: 1 / 1;
+    height: 50px;
+    border-radius: 5px;
+    padding: 5px;
+}
+
+.side img {
+    width: 100%;
+    height: 100%;
+    border-radius: 5px;
+    object-fit: cover;
+}
+
+/* header row */
+.list .header {
+    padding: 10px;
+    display: flex;
+    align-items: center;
+    width: 100%;
+    min-width: 0;
+    justify-content: space-between;
+}
+
+/* info block */
+.info {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    min-width: 0;
+}
+
+/* text */
+.title {
+    font-weight: 600;
+}
+
+.desc {
+    color: var(--grey);
+}
+
+/* active state (scoped) */
+.active .title {
+    color: var(--green);
+}
+
+/* options */
+.options {
+    display: flex;
+    align-items: center;
+}
+
+/* icon */
+.icon {
+    width: 20px;
+    height: 20px;
+    fill: var(--color);
+}
+
+.AddBtn{
+    border:1px dashed var(--grey);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    flex-direction: column;
+    margin-top: 12px;
+}
+.AddBtn .content svg{
+    width: 20px;
+    height: 20px;
+}
+.AddBtn .bottomText{
+    font-size: 10px;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+.idPopOut{
+    width: 100%;
+    height: 100%;
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    color: white;
+    --color:white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 20;
+}
+.idPopOut .backdrop{
+    width: 100%;
+    height: 100%;
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    right: 0;
+        background: linear-gradient(to right, rgba(0, 128, 0, 0.401) 0%, rgba(0, 0, 0, 0.453) 30% 70%, rgba(255, 0, 0, 0.401) 100%);
+    color: white;
+    --color:white;
+    background-size: 300% 100%;
+    z-index: 20;
+    background-position-x: 50%;
+    transition: 0.5s;
+}
+.idPopOut.invalid .backdrop{
+    background-position: 100%;
+}
+.idPopOut.correct .backdrop{
+    background-position: 0%;
+}
+
+.popout{
+    width: 80%;
+    object-fit: contain;
+    background-color: black;
+    border-radius: 20px;
+    padding: 20px;
+    box-sizing: border-box;
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    transform: translate(-50%,-50%);
+    box-shadow: 0 0 10px -2px var(--black);
+    transition: 0.5s;
+    z-index: 21;
+}
+.idPopOut.correct .popout{
+    top: 100%;
+    transform: translate(-50%,0%);
+}
+.popout .header{
+    font-size: 18px;
+    font-weight: 800;
+    text-transform: capitalize;
+    margin-top:10px;
+}
+.popout .description{
+    font-size: 12px;
+    margin-top: 5px;
+    color: var(--grey);
+}
+input#key{
+    margin: 10px;
+    width: 100%;
+    padding: 10px;
+    box-sizing: border-box;
+    border-radius: 10px;
+    background-color: var(--black);
+    color: white;
+    outline: none;
+    border: 1px solid black;
+    font-size: 16px;
+}

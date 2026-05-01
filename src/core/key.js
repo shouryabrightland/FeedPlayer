@@ -1,5 +1,5 @@
-import { AppState } from "./AppState.class";
-import { buildConfig } from "./config";
+import { AppState } from "../AppState.class";
+import { buildConfig } from "../config";
 /**
  * @param {AppState} appstate 
  * @param {string} key 
@@ -95,7 +95,7 @@ export function storeKey(key) {
 
 export function getKey() {
   const params = new URLSearchParams(window.location.search);
-  const keyFromUrl = params.get("key");
+  const keyFromUrl = params.get("k");
   return decodeKey(keyFromUrl || localStorage.getItem("user_key"))
 }
 

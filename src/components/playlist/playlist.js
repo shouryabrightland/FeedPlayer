@@ -6,7 +6,7 @@ import { useState, useEffect } from "react"
 import templateFX from "../templateFX.comp"
 import React from "react"
 import { useAppState } from "../../AppState.class"
-import { encodeKey } from "../../key"
+import { encodeKey } from "../../core/key"
 
 
 const PlayListMeta = React.memo(function PlayListMeta({ songList }) {

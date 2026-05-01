@@ -1,8 +1,9 @@
 import { useState, useEffect } from "react";
 export default class state {
-  constructor(value) {
+  constructor(value , name = "unknown") {
     this.listeners = [];
     this.value = value;
+    this.name = name
   }
 
   get() {
@@ -11,7 +12,7 @@ export default class state {
 
   set(value) {
     if (this.value === value) return;
-    console.warn("STATE CHANGED",this.value,value)
+    console.warn("STATE CHANGED",this.name,this.value,"->",value)
     this.value = value;
     this.listeners.forEach(fn => fn && fn(value));
   }

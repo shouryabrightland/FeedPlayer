@@ -1,5 +1,5 @@
 import PlayerState from "../PlayerState.class";
-import Song from "../song.class";
+import Song from "../../core/song.class";
 import { usePlayerValue } from "../state.class";
 import styles from "./list.module.css";
 import React from "react"

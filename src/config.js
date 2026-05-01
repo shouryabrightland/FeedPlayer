@@ -1,4 +1,4 @@
-import Song from "./components/song.class"
+import Song from "./core/song.class"
 export function buildConfig(data, KEY) {
   return {
     ...data,
