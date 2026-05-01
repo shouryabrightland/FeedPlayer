@@ -6,9 +6,9 @@ read me
 edit images for thumbnail
 
 offline workable
-outer progress bar
+make download ux proper
+introduce dowmload properly
 
-color based on thumbnail
 
 - files to add
 family
