@@ -1,16 +1,6 @@
-import { usePlayerValue } from "./state.class";
-import { AppState } from "../AppState.class";
-export function PlayBtn(prop) {
-    /** @type {PlayerState}*/
-    const state = prop.state
-    const styles = prop.styles || {}
-    const isPlaying = usePlayerValue(state.isPlaying)
-    const isLoading = usePlayerValue(state.isLoading)
-
-    if (!state) {
-        console.log("state not found in play_btn")
-    }
-
+import { usePlayerValue } from "../core/state.class";
+import { AppState } from "../core/AppState.class";
+export function PlayBtn({isPlaying , isLoading, styles}) {
     if (isLoading) {
         return (
             < svg className="icon" viewBox="0 0 200 200" >

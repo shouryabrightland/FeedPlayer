@@ -2,18 +2,22 @@
   margin: 0;
   padding: 0;
 }
+
 body,
 #root{
   --grey:rgb(179, 179, 179);
   --black:rgb(32, 32, 32);
   --color:var(--grey);
   --green:#1ed760;
+
   width: 100vw;
   height: 100vh;
   height:100dvh;
+
   background-color: var(--black) ;
   padding-top: env(safe-area-inset-top);
   padding-bottom: env(safe-area-inset-bottom);
+
 }
 
 .app{
@@ -26,7 +30,6 @@ body,
   transform: translate(-50%,0);
   height: 100vh;
   height:100dvh;
-  /* max-height: 700px; */
   overflow: hidden;
   background-color: rgb(19, 19, 19);
   padding-top: env(safe-area-inset-top);

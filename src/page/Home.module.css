@@ -151,19 +151,11 @@
     bottom: 0;
     left: 0;
     right: 0;
-        background: linear-gradient(to right, rgba(0, 128, 0, 0.401) 0%, rgba(0, 0, 0, 0.453) 30% 70%, rgba(255, 0, 0, 0.401) 100%);
+    background: rgba(0, 0, 0, 0.81);
     color: white;
     --color:white;
-    background-size: 300% 100%;
-    z-index: 20;
-    background-position-x: 50%;
+    z-index: 10;
     transition: 0.5s;
-}
-.idPopOut.invalid .backdrop{
-    background-position: 100%;
-}
-.idPopOut.correct .backdrop{
-    background-position: 0%;
 }
 
 .popout{
@@ -183,11 +175,7 @@
     transform: translate(-50%,-50%);
     box-shadow: 0 0 10px -2px var(--black);
     transition: 0.5s;
-    z-index: 21;
-}
-.idPopOut.correct .popout{
-    top: 100%;
-    transform: translate(-50%,0%);
+    z-index: 11;
 }
 .popout .header{
     font-size: 18px;

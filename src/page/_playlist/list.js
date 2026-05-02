@@ -1,6 +1,6 @@
-import PlayerState from "../PlayerState.class";
+import PlayerState from "../../core/PlayerState.class";
 import Song from "../../core/song.class";
-import { usePlayerValue } from "../state.class";
+import { usePlayerValue } from "../../core/state.class";
 import styles from "./list.module.css";
 import React from "react"
 

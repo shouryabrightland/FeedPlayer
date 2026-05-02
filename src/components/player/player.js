@@ -1,8 +1,8 @@
 import React from "react"
 import { useEffect, useState } from "react";
-import PlayerState from "../PlayerState.class"
-import { usePlayerValue } from "../state.class";
-import { AppState, useAppState } from "../../AppState.class";
+import PlayerState from "../../core/PlayerState.class"
+import { usePlayerValue } from "../../core/state.class";
+import { AppState, useAppState } from "../../core/AppState.class";
 import PlayerBackdrop from "./backdrop";
 import { getAverageColor, PlayBtn } from "../sm_components";
 import { CoverArt, ProgressBar, SuffleBtn, LoopBtn } from "./components";

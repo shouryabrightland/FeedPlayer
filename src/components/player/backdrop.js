@@ -1,6 +1,6 @@
 import React from "react";
 import { useRef, useState, useEffect , useMemo} from "react";
-import { usePlayerValue } from "../state.class";
+import { usePlayerValue } from "../../core/state.class";
 import styles from "./player.module.css"
 function PlayerBackdrop({ state, isMini,bgcolor }) {
     const containerRef = useRef(null);

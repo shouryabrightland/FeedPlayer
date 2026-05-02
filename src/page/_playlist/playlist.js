@@ -1,12 +1,26 @@
 import styles from "./playlist.module.css"
 import List from "./list"
-import PlayerState from "../PlayerState.class"
+import PlayerState from "../../core/AppState.class"
 import { getAverageColor, PlayBtn } from "../sm_components"
 import { useState, useEffect } from "react"
 import templateFX from "../templateFX.comp"
 import React from "react"
-import { useAppState } from "../../AppState.class"
-import { encodeKey } from "../../core/key"
+import { useAppState } from "../../core/AppState.class"
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 const PlayListMeta = React.memo(function PlayListMeta({ songList }) {
@@ -15,7 +29,8 @@ const PlayListMeta = React.memo(function PlayListMeta({ songList }) {
 
 })
 
-function Playlist({ appstate, playstate }) {
+function Playlist({appstate}) {
+    
     const CONFIG = useAppState(appstate.CONFIG)
     const [BGcolor,setBGcolor] = useState("black")
 
@@ -113,4 +128,4 @@ const handleShare = async (key) => {
   }
 };
 
-export default React.memo(Playlist)
+// export default React.memo(Playlist)

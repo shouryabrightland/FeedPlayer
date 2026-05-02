@@ -42,36 +42,15 @@ export class PlayList {
     key.length < 50 &&                 // limit size
     /^[a-zA-Z0-9/_-]+$/.test(key);    // whitelist chars
 }
-  encodeID(raw) {
-    if (!raw) return "";
-    // return btoa(raw)
-    //   .replace(/\+/g, "-")
-    //   .replace(/\//g, "_")
-    //   .replace(/=+$/, "");
-
-    return raw;
-  }
-  decodeID(encoded) {
-    if (!encoded) return "";
-    // encoded = encoded
-    //   .replace(/-/g, "+")
-    //   .replace(/_/g, "/");
-
-    // while (encoded.length % 4) {
-    //   encoded += "=";
-    // }
-
-    // return atob(encoded);
-
-    return encoded
-  }
-  async loadSongs() {
-    if (!this.songsUrl || this.isSongsLoaded) return
+  
+  async loadSongsMeta() {
+    if(!this.isLoaded.get()) await this.init()
+    if (!this.songsUrl || this.isSongsLoaded.get()) return
 
     this.isSongsLoaded.set(false)
     this.isValid = await (async () => {
       try {
-        const SongsRes = await fetch(this.path + this.songsUrl);
+        const SongsRes = await fetch(this.songsUrl);
         const SongsData = await SongsRes.json();
         this.songs.set(SongsData.song_list.map(s => new Song(s, this.path)))
         return true
