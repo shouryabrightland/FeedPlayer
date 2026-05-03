@@ -1,5 +1,3 @@
-import { usePlayerValue } from "../core/state.class";
-import { AppState } from "../core/AppState.class";
 export function PlayBtn({isPlaying , isLoading, styles}) {
     if (isLoading) {
         return (

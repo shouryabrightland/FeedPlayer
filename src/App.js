@@ -6,24 +6,39 @@ import "./App.css"
 import Home from "./page/Home"
 import PlayListPage from "./page/Playlist";
 import { PlayerProvider } from "./core/PlayerProvider";
+import { PlaylistProvider } from "./core/PlaylistProvider";
+
+
+import Player from "./page/Player/Player";
+import Navbar from "./page/navbar/navbar";
+import Footer from "./page/footer/footer";
+import AboutMe from "./page/aboutMe/aboutme";
 
 function App() {
   return (
     <AppLayout>
       <Routes>
         <Route path="/" element={<Home />} />
-        <Route path="/playlist" element={<PlayListPage/>}/>
+        <Route path="/playlist" element={<PlayListPage />} />
+        <Route path="/aboutme" element={<AboutMe />} />
       </Routes>
     </AppLayout>
   )
 }
 
-function AppLayout({children}){
+function AppLayout({ children }) {
   return (
     <div className="app">
       <PlayerProvider>
-        {children}
+        <div className="content">
+          <PlaylistProvider>
+            {children}
+          </PlaylistProvider>
+          <Footer />
+        </div>
+        <Player />
       </PlayerProvider>
+      <Navbar />
     </div>
   )
 }

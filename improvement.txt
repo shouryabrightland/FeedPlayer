@@ -1,8 +1,6 @@
 working Navbar 
 shareable
 like btn
-key page
-read me
 edit images for thumbnail
 
 offline workable

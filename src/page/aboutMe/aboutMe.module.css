@@ -1,0 +1,69 @@
+.AboutMe {
+    width: 100%;
+    box-sizing: border-box;
+    color: white;
+}
+.header{
+    width: 100%;
+    padding: 20px 10px ;
+    box-sizing: border-box;
+    font-size: 20px;
+    color: white;
+    font-weight: 700;
+    box-shadow: 0 0 10px -6px var(--grey);
+}
+
+.container {
+    display: flex;
+    gap: 20px;
+    align-items: center;
+}
+.container > *{
+    flex: 1;
+    max-width: 50%;
+}
+
+.left {
+    max-width: 50%;
+}
+
+.right {
+    flex: 1;
+    display: flex;
+    justify-content: center;
+    max-width: 50%;
+}
+
+.face {
+    width: 100%;
+    max-width: 250px;
+    aspect-ratio: 1 / 1;
+    border-radius: 20px;
+    object-fit: cover;
+}
+
+.meta{
+    padding: 20px;
+}
+
+
+
+.meta h3 {
+    font-size: 24px;
+    margin-bottom: 5px;
+}
+
+.tagline {
+    opacity: 0.7;
+    margin-bottom: 15px;
+}
+
+.section {
+    margin-top: 15px;
+}
+
+.section h4 {
+    margin-bottom: 5px;
+    font-size: 16px;
+    opacity: 0.8;
+}

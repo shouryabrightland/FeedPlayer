@@ -2,9 +2,9 @@ import React from "react";
 import { useEffect, useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 
-import { _DBName, _DBVersion, _PlaylistKey, _StoreName, DBName, StoreName } from "../const";
-import { DB } from "../core/db";
+
 import { fetchPlaylist } from "../services/PlaylistServices";
+import { usePlaylistCtx } from "../core/PlaylistProvider";
 
 
 import HomeStyles from "./Home.module.css";
@@ -29,58 +29,31 @@ function HomeLayout({ children }) {
 }
 
 function PlaylistList() {
-    const [playlists, setPlaylists] = useState([]);
-    const dbRef = React.useRef(null);
-    const isFirst = useRef(true);
+    const { playlists, addPlaylist, removePlaylist } = usePlaylistCtx();
 
-    if (!dbRef.current) {
-        dbRef.current = new DB(_DBName, _StoreName, _DBVersion);
-    }
-    const _DB = dbRef.current;
-
-    useEffect(() => {
-        (async () => {
-            const data = await _DB.get(_PlaylistKey);
-            if (Array.isArray(data)) setPlaylists(data);
-        })();
-    }, []);
-
-    useEffect(() => {
-        if (isFirst.current) {
-            isFirst.current = false;
-            return;
-        }
-
-        _DB.set(_PlaylistKey, playlists);
-    }, [playlists]);
-
-    const addPlaylist = async (id) => {
-        const playlist = await fetchPlaylist(id);
-
-        if (!playlist) return;
-
-        setPlaylists(prev => {
-            if (prev.find(p => p.id === id)) return prev;
-            return [...prev, playlist];
-        });
+    const handleRemovePlaylist = (id) => {
+        removePlaylist(id); // ✅ use store
     };
 
-    const removePlaylist = (id) => {
-        setPlaylists(prev => prev.filter(p => p.id !== id));
-    };
-
-    return (<>
+    return (
         <div className={HomeStyles.list}>
             <div className={HomeStyles.heading}>
-                {playlists.length ? "Select the playlist below" : "No Playlist Found in your Device"}
+                {playlists.length
+                    ? "Select the playlist below"
+                    : "No Playlist Found in your Device"}
             </div>
-            {playlists.length != 0 && playlists.map((v, i, arr) =>
-                <PlaylistCard playlist={v} key={v.id} addPlaylist={addPlaylist} removePlaylist={() => removePlaylist(v.id)} />
-            )}
+
+            {playlists.map((v) => (
+                <PlaylistCard
+                    playlist={v}
+                    key={v.id}
+                    removePlaylist={() => handleRemovePlaylist(v.id)}
+                />
+            ))}
+
             <PlaylistAdd addPlaylist={addPlaylist} />
         </div>
-    </>
-    )
+    );
 }
 
 function PlaylistAdd({ addPlaylist }) {
@@ -107,7 +80,8 @@ function PopOut({ set, addPlaylist }) {
             return;
         }
 
-        addPlaylist(id).finally(() => set(false));
+        addPlaylist(playlist); // ✅ pass full object
+        set(false);
     };
     return (
         <div className={`${HomeStyles.idPopOut}`}>

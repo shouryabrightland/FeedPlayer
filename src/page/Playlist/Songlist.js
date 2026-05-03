@@ -1,9 +1,18 @@
-import { usePlayer } from "../../core/PlayerProvider"
+import { usePlayerCtx } from "../../core/PlayerProvider"
 import SongListStyles from "./SongList.module.css"
 
-export default function SongList({ songs }) {
+export default function SongList({ songs, playlist }) {
     console.log(songs)
-    const player = usePlayer();
+    const player = usePlayerCtx();
+    const isActive = (index)=>player.current?.path == playlist.path && player.current.songUrl == songs[index].songUrl;
+
+    const onClick = (index) => {
+        const isPlaying = isActive(index) && player.isPlaying;
+        const isLoading = isActive(index) && player.isLoading;
+        if (isLoading) return;
+        if (isActive(index)) player.toggle()
+        else player.load(songs, playlist, index);
+    }
     console.log(player)
     return (
         <div className={SongListStyles.list}>
@@ -12,11 +21,8 @@ export default function SongList({ songs }) {
                 <SongCard
                     key={song.songUrl}
                     song={song}
-                    onClick={() => {
-                        if(player.index == index) player.toggle()
-                        else player.playQueue(songs, index)
-                    }}
-                    isActive={player.index == index}
+                    onClick={()=>onClick(index)}
+                    isActive={isActive(index)}
                 />
             ))}
         </div>
@@ -26,8 +32,8 @@ export default function SongList({ songs }) {
 function SongCard({ song, onClick, isActive }) {
 
     return (
-    <div className={`${SongListStyles.item} ${isActive ? SongListStyles.active : ""}`}
-        onClick={onClick}>
+        <div className={`${SongListStyles.item} ${isActive ? SongListStyles.active : ""}`}
+            onClick={onClick}>
             <div className={SongListStyles.side}>
                 <img src={song.path + song.thumbnail} />
             </div>

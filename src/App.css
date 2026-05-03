@@ -54,8 +54,7 @@ body,
 
 .content{
     width: 100%;
-    min-height: 100vh;
-    max-height: 700px;
+    height: 100vh;
     overflow: auto;
 }
 .icon{
