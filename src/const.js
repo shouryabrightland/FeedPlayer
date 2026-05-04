@@ -1,3 +1,5 @@
+export const APP_NAME = "FeedPlayer"
+
 export const _PlaylistKey = "PlaylistList";
 export const _DBName = "FeedPlayer";
 export const _StoreName = "Appstate";

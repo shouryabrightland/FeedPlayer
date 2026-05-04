@@ -1,8 +1,8 @@
+import React from "react";
 import { usePlayerCtx } from "../../core/PlayerProvider"
 import SongListStyles from "./SongList.module.css"
 
-export default function SongList({ songs, playlist }) {
-    console.log(songs)
+export default React.memo(function SongList({ songs, playlist }) {
     const player = usePlayerCtx();
     const isActive = (index)=>player.current?.path == playlist.path && player.current.songUrl == songs[index].songUrl;
 
@@ -13,7 +13,6 @@ export default function SongList({ songs, playlist }) {
         if (isActive(index)) player.toggle()
         else player.load(songs, playlist, index);
     }
-    console.log(player)
     return (
         <div className={SongListStyles.list}>
             {songs.map((song, index) => (
@@ -27,7 +26,7 @@ export default function SongList({ songs, playlist }) {
             ))}
         </div>
     )
-}
+})
 
 function SongCard({ song, onClick, isActive }) {
 

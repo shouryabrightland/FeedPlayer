@@ -1,7 +1,7 @@
 // usePlayer.js
 import { useState, useRef, useEffect } from "react";
-import { LastPlayList_Key, STORAGE_KEY } from "../const";
-import { encodeID } from "../services/PlaylistIDServices";
+import { APP_NAME, LastPlayList_Key, STORAGE_KEY } from "../const";
+import { decodeID, encodeID } from "../services/PlaylistIDServices";
 
 export function usePlayer() {
     const audioRef = useRef(new Audio());
@@ -16,9 +16,26 @@ export function usePlayer() {
     const [isShuffle, setIsShuffle] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
 
+    const reset = () => {
+        setCurrent(null)
+        setQueue([])
+        setIndex(-1)
+        setIsPlaying(false)
+        setisActive(false)
+        setIsLoop(false)
+        setIsShuffle(false)
+        setIsLoading(false)
+        audioRef.current.pause()
+        audioRef.current.src = "";
+        localStorage.removeItem(LastPlayList_Key)
+        localStorage.removeItem(STORAGE_KEY);
+    }
+
     useEffect(() => {
         try {
-            const saved = JSON.parse(localStorage.getItem(STORAGE_KEY));
+            const str = localStorage.getItem(STORAGE_KEY);
+            if (!str) return;
+            const saved = JSON.parse(str);
 
             if (!saved) return;
 
@@ -57,13 +74,15 @@ export function usePlayer() {
             currentTime: audioRef.current.currentTime
         };
         localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
-        localStorage.setItem(LastPlayList_Key,encodeID(current?.path))
+        localStorage.setItem(LastPlayList_Key, encodeID(current?.path))
 
     }, [queue, index, isLoop, isShuffle, isActive, isPlaying]);
 
     const play = () => {
         if (!isActive) return;
-        audioRef.current.play();
+        audioRef.current.play().catch(() => {
+            setIsPlaying(false);
+        });
         setIsPlaying(true);
     };
 
@@ -80,47 +99,59 @@ export function usePlayer() {
         setCurrent(list[start]);
         audioRef.current.src = list[start].path + list[start].songUrl;
         setisActive(true)
-        audioRef.current.play();
+        audioRef.current.play().catch(() => {
+            setIsPlaying(false);
+        });
         setIsPlaying(true);
     };
 
     const next = () => {
         if (!isActive) return;
+        if (queue.length === 0) return;
 
-        let i;
-
-        if (isShuffle) {
-            i = Math.floor(Math.random() * queue.length);
-        } else {
-            i = index + 1;
+        let i = index;
+        if (!isLoop) {
+            if (isShuffle) {
+                let a = Math.floor(Math.random() * queue.length);
+                if (a === index) {
+                    a = (a + 1) % queue.length;
+                }
+                i = a;
+            }
+            else {
+                i = index + 1;
+            }
         }
-
-        if (i >= queue.length) {
-            if (isLoop) i = 0;
-            else return;
-        }
+        if (queue.length === 0) return;
+        i = i % queue.length;
 
         setIndex(i);
         setCurrent(queue[i]);
         audioRef.current.src = queue[i].path + queue[i].songUrl;
-        audioRef.current.play();
+        seek(0)
+        audioRef.current.play().catch(() => {
+            setIsPlaying(false);
+        });
         setIsPlaying(true);
     };
 
     const prev = () => {
-        if (!isActive) return;
+        if (queue.length === 0) return;
+        let i = index;
 
-        let i = index - 1;
-
-        if (i < 0) {
-            if (isLoop) i = queue.length - 1;
-            else return;
+        if (!isLoop) {
+            i = index - 1;
         }
+
+        if (i < 0) i = queue.length - 1;
 
         setIndex(i);
         setCurrent(queue[i]);
         audioRef.current.src = queue[i].path + queue[i].songUrl;
-        audioRef.current.play();
+        seek(0);
+        audioRef.current.play().catch(() => {
+            setIsPlaying(false);
+        });
         setIsPlaying(true);
     };
 
@@ -133,21 +164,22 @@ export function usePlayer() {
     //auto next
     useEffect(() => {
         const audio = audioRef.current;
-
         const handleEnd = () => {
-            if (isLoop && !isShuffle) {
-                next(); // loop playlist
-            } else {
-                next();
-            }
+            next()
         };
-
         audio.addEventListener("ended", handleEnd);
-
         return () => {
             audio.removeEventListener("ended", handleEnd);
         };
-    }, [index, queue, isLoop, isShuffle]);
+    }, []);
+
+    useEffect(() => {
+        if (current) {
+            document.title = `${isPlaying ? "▶" : "⏸"} ${current.title} • ${APP_NAME}`;
+        } else {
+            document.title = APP_NAME;
+        }
+    }, [current, isPlaying]);
 
     //hooking with audio
     useEffect(() => {
@@ -189,6 +221,8 @@ export function usePlayer() {
         isShuffle,
         setIsShuffle,
 
-        isLoading
+        isLoading,
+
+        reset
     };
 }

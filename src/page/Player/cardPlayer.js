@@ -11,7 +11,6 @@ export default function CardPlayer({isVisible,setVisible, theme, player }) {
     const toggle = player.toggle
     const song = player.current
     const thumbnailUrl = song?.path + song?.thumbnail
-    console.log("rendering CardPlayer")
     return (
         <div className={player.isActive && !isVisible ? PlayerStyles.outerPlayerCard : `${PlayerStyles.outerPlayerCard} ${PlayerStyles.min}`}
             style={{ '--bg': theme }}>

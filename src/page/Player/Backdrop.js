@@ -86,8 +86,6 @@ function PlayerBackdrop({ player, isVisible, minimize, bgcolor }) {
                 virtualIndex: i
             });
         }
-        console.log(items, "bnm", index)
-
         return items;
     }, [index, media]);
 

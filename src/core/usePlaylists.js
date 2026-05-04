@@ -1,12 +1,16 @@
 import { useEffect, useRef, useState } from "react";
 import { DB } from "./db";
 import { _DBName, _StoreName, _DBVersion, _PlaylistKey } from "../const";
+import { usePlayerCtx } from "./PlayerProvider";
+import { encodeID } from "../services/PlaylistIDServices";
 
 export function usePlaylists() {
     const [playlists, setPlaylists] = useState([]);
     const [ready, setReady] = useState(false);
     const dbRef = useRef(null);
     const isFirst = useRef(true);
+
+    const player = usePlayerCtx()
 
     if (!dbRef.current) {
         dbRef.current = new DB(_DBName, _StoreName, _DBVersion);
@@ -16,9 +20,12 @@ export function usePlaylists() {
     // Load from DB
     useEffect(() => {
         (async () => {
-            const data = await _DB.get(_PlaylistKey);
-            if (Array.isArray(data)) setPlaylists(data);
-            console.log("setting true")
+            try {
+                const data = await _DB.get(_PlaylistKey);
+                if (Array.isArray(data)) setPlaylists(data);
+            } catch (e) {
+                console.error("DB load failed", e);
+            }
             setReady(true);
         })();
     }, []);
@@ -32,6 +39,17 @@ export function usePlaylists() {
 
         _DB.set(_PlaylistKey, playlists);
     }, [playlists]);
+
+    //checking Player
+    useEffect(() => {
+        if (!ready || !player.current) return;
+
+        const id = encodeID(player.current.path);
+
+        if (!hasPlaylist(id)) {
+            player.reset();
+        }
+    }, [player.current, ready, playlists])
 
     // Add playlist
     const addPlaylist = (playlist) => {

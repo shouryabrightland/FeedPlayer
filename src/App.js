@@ -13,6 +13,7 @@ import Player from "./page/Player/Player";
 import Navbar from "./page/navbar/navbar";
 import Footer from "./page/footer/footer";
 import AboutMe from "./page/aboutMe/aboutme";
+import NotFound from "./page/others/404";
 
 function App() {
   return (
@@ -21,6 +22,7 @@ function App() {
         <Route path="/" element={<Home />} />
         <Route path="/playlist" element={<PlayListPage />} />
         <Route path="/aboutme" element={<AboutMe />} />
+        <Route path="*" element={<NotFound />} />
       </Routes>
     </AppLayout>
   )
@@ -30,13 +32,13 @@ function AppLayout({ children }) {
   return (
     <div className="app">
       <PlayerProvider>
-        <div className="content">
-          <PlaylistProvider>
+        <PlaylistProvider>
+          <div className="content">
             {children}
-          </PlaylistProvider>
-          <Footer />
-        </div>
-        <Player />
+            <Footer />
+          </div>
+          <Player />
+        </PlaylistProvider>
       </PlayerProvider>
       <Navbar />
     </div>

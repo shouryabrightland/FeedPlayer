@@ -13,8 +13,8 @@ import SongList from "./Playlist/Songlist.js";
 
 import PlaylistStyles from "./Playlist.module.css";
 import templateFXStyles from "./templateFX.module.css";
-import { LoadingPage } from "./others/LoadingPage.js";
-import { ErrorPage } from "./others/ErrorPage.js";
+import LoadingPage from "./others/LoadingPage.js";
+import ErrorPage from "./others/ErrorPage.js";
 import { LastPlayList_Key } from "../const.js";
 import { shareContent } from "../components/shareContent.js";
 
@@ -23,7 +23,7 @@ import { _DBName, _StoreName, _DBVersion, _PlaylistKey } from "../const";
 import { usePlaylistCtx } from "../core/PlaylistProvider.js";
 
 
-export default function PlayListPage() {
+export default React.memo(function PlayListPage() {
     const [params] = useSearchParams();
     const id = params.get("k") || localStorage.getItem(LastPlayList_Key);
 
@@ -35,57 +35,61 @@ export default function PlayListPage() {
     const [playlist, setPlaylist] = useState(null);
     const [songs, setSongs] = useState([]);
     const [loading, setLoading] = useState(true);
-    const [error, setError] = useState("");
+    const [error, setError] = useState(null);
 
     useEffect(() => {
-    if (!id) {
-        setError("No playlist id");
-        setLoading(false);
-        return;
-    }
-
-    (async () => {
-        try {
-            setLoading(true);
-
-            const data = await fetchPlaylist(id);
-            if (!data) {
-                setError("Invalid playlist");
-                return;
-            }
-
-            setPlaylist(data);
-
-            if (ready && !hasPlaylist(data.id)) {
-                addPlaylist(data);
-                console.log("Auto-saved from shared link");
-            }
-
-            const songsData = (await fetchSongs(data.songsUrl)).map((v) => {
-                v.path = data.path;
-                return v;
-            });
-
-            setSongs(songsData || []);
-
-        } catch (e) {
-            console.log(e);
-            setError("Something went wrong");
-        } finally {
+        if (!id) {
+            setError({title:"No Playlist Selected",
+                message:"Selected Playlist will be Shown Here"});
             setLoading(false);
+            return;
         }
-    })();
-}, [id, ready]); // 👈 include ready here
 
-    useEffect(() => {
-        if (error) {
-            console.error(error);
-            navigate("/");
-        }
-    }, [error, navigate]);
+        let active = true;
 
-    if (loading) return <LoadingPage msg={"loading"} />;
-    if (error) return <ErrorPage msg={error} />;
+        (async () => {
+            try {
+                setLoading(true);
+
+                const data = await fetchPlaylist(id);
+                if (!active) return;
+
+                if (!data) {
+                    setError({title:"No Playlist Found",
+                        message:"Provide Link is invalid or Playlist is moved"});
+                    return;
+                }
+
+                setPlaylist(data);
+
+                if (ready && !hasPlaylist(data.id)) {
+                    addPlaylist(data);
+                }
+
+                const songsData = await fetchSongs(data.songsUrl);
+                if (!active) return;
+
+                setSongs((songsData || []).map(v => ({ ...v, path: data.path })));
+
+            } catch (e) {
+                if (!active) return;
+                setError({title:"Error",message: "Something Went Wrong"});
+            } finally {
+                if (active) setLoading(false);
+            }
+        })();
+
+        return () => {
+            active = false;
+        };
+    }, [id, ready]);
+
+    // intentionally excluding hasPlaylist & addPlaylist
+    // because they are unstable references
+
+    if (!ready || loading) return <LoadingPage />;
+    if (error) return <ErrorPage title={error.title} message={error.message} />;
+    if (!playlist) return <ErrorPage message="Failed to load playlists" />;
 
     return (
         <PlaylistLayOut>
@@ -96,14 +100,14 @@ export default function PlayListPage() {
             <SongList songs={songs} playlist={playlist} />
         </PlaylistLayOut>
     );
-}
+})
 
 function Info({ data, songs }) {
     const handleShare = async () => {
         const result = await shareContent({
             title: data.title,
             text: data.description,
-            url: `${window.location.origin}/playlist?k=${data.id}` // or your playlist URL
+            url: `${window.location.origin}${window.location.pathname}?k=${data.id}`
         });
 
         if (result.method === "clipboard") {
@@ -146,7 +150,7 @@ function Text({ children }) {
 
 function PlaylistBtn({ songs, playlist }) {
     const player = usePlayerCtx()
-    const isActive = player.current?.path == playlist.path;
+    const isActive = player.current?.path === playlist.path;
     const isPlaying = isActive && player.isPlaying;
     const isLoading = isActive && player.isLoading;
 
