@@ -35,8 +35,7 @@
 }
 
 .face {
-    width: 100%;
-    max-width: 250px;
+    width: 40vw;
     aspect-ratio: 1 / 1;
     border-radius: 20px;
     object-fit: cover;

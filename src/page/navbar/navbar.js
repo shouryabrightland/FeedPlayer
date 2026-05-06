@@ -10,7 +10,7 @@ export default function Navbar() {
     const isActive = (path) => location.pathname === path;
 
     return (
-        <div className={NavStyles.navbar}>
+        <div className={`${NavStyles.navbar} no-copy`}>
             
             <div
                 className={`${NavStyles.item} ${isActive("/") ? NavStyles.active : ""}`}

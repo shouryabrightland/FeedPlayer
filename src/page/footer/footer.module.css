@@ -1,4 +1,17 @@
 .footer{
     width: 100%;
-    height: 50vh;
+    display: flex;
+    justify-content: center;
+    background: linear-gradient(transparent 0%,rgba(0, 0, 0, 0.544) 40%);
+    padding: 20px;
+    padding-bottom: 70px;
+    box-sizing: border-box;
+}
+.container{
+    width: 100%;
+    text-align: center;
+}
+p{
+    padding: 20px;
+    text-align: center;
 }

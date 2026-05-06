@@ -1,36 +1,156 @@
 // usePlayer.js
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import { APP_NAME, LastPlayList_Key, STORAGE_KEY } from "../const";
-import { decodeID, encodeID } from "../services/PlaylistIDServices";
+import { encodeID } from "../services/PlaylistIDServices";
+import { usePlaylistCtx } from "./PlaylistProvider";
 
 export function usePlayer() {
-    const audioRef = useRef(new Audio());
+    const audioRef = useRef(null);
+    const nextRef = useRef(null);
+    if (!audioRef.current) {
+        audioRef.current = new Audio();
+    }
+
+    if (!nextRef.current) {
+        nextRef.current = new Audio();
+    }
+
     const PlaylistMetaRef = useRef(null);
 
     const [current, setCurrent] = useState(null);
     const [queue, setQueue] = useState([]);
     const [index, setIndex] = useState(-1);
     const [isPlaying, setIsPlaying] = useState(false);
-    const [isActive, setisActive] = useState(false);
     const [isLoop, setIsLoop] = useState(false);
     const [isShuffle, setIsShuffle] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
+    const [isVisible, setIsVisible] = useState(false);
 
-    const reset = () => {
+    const prevIndexRef = useRef(-1);
+    const nextIndexRef = useRef(-1);
+    const shouldPlayRef = useRef(false);
+
+    const playlist = usePlaylistCtx();
+
+    const setSource = useCallback((audioRef, song) => {
+        audioRef.current.src = song ? song.path + song.songUrl : "";
+        audioRef.current.preload = "auto"
+    }, [])
+
+    const reset = useCallback(() => {
         setCurrent(null)
         setQueue([])
         setIndex(-1)
         setIsPlaying(false)
-        setisActive(false)
         setIsLoop(false)
         setIsShuffle(false)
         setIsLoading(false)
+        setIsVisible(false)
         audioRef.current.pause()
-        audioRef.current.src = "";
+        setSource(audioRef, "")
+
+        setSource(nextRef, "")
+        nextIndexRef.current = prevIndexRef.current = -1;
+
         localStorage.removeItem(LastPlayList_Key)
         localStorage.removeItem(STORAGE_KEY);
-    }
+        shouldPlayRef.current = false;
+    }, [setSource])
 
+    const play = useCallback(() => {
+        shouldPlayRef.current = true;
+
+        audioRef.current.play()
+            .then(() => setIsPlaying(true))
+            .catch(() => setIsPlaying(false));
+    }, []);
+
+    const pause = useCallback(() => {
+        shouldPlayRef.current = false;
+
+        audioRef.current.pause();
+        setIsPlaying(false);
+    }, []);
+
+    const seek = useCallback((time) => {
+        if (audioRef.current) {
+            audioRef.current.currentTime = time;
+        }
+    }, [])
+
+    const load = useCallback((list, Playlist = null, start = 0) => {
+        PlaylistMetaRef.current = Playlist;
+        if (!list?.length) return;
+        setQueue(list);
+        const safeIndex = Math.min(start, list.length - 1);
+        setIndex(safeIndex)
+        setCurrent(list[safeIndex])
+        setSource(audioRef, list[safeIndex])
+        seek(0);
+        play()
+    }, [seek,setSource]);
+
+    const next = useCallback(() => {
+        if (nextIndexRef.current >= 0) {
+            setSource(audioRef,queue[nextIndexRef.current]);
+            setIndex(nextIndexRef.current);
+            setCurrent(queue[nextIndexRef.current]);
+        }
+        seek(0)
+        if (shouldPlayRef.current) play();
+    }, [seek,queue,play,setSource]);
+
+    const prev = useCallback(() => {
+        if (prevIndexRef.current >= 0) {
+            setSource(audioRef,queue[prevIndexRef.current]);
+            setIndex(prevIndexRef.current);
+            setCurrent(queue[prevIndexRef.current]);
+        }
+        seek(0)
+        if (shouldPlayRef.current) play();
+    }, [seek,queue,play,setSource]);
+
+    const toggle = useCallback(() => {
+        if (isPlaying) {
+            pause();
+        } else {
+            play();
+        }
+    }, [isPlaying, play, pause]);
+
+
+    //index update
+    useEffect(() => {
+        if (queue.length === 0) return;
+
+        let nextIndex = (index + 1) % queue.length;
+        let prevIndex = (index - 1 + queue.length) % queue.length;
+
+        if (isLoop) {
+            prevIndex = -1;
+            nextIndex = -1;
+        }
+
+        if (isShuffle) {
+            let a = Math.floor(Math.random() * queue.length);
+            if (a !== index) nextIndex = a % queue.length;
+        }
+
+        if (nextIndex !== nextIndexRef.current) {
+            const nextSong = queue[nextIndex];
+            setSource(nextRef, nextSong)
+            nextIndexRef.current = nextIndex
+        }
+
+        if (prevIndex !== prevIndexRef.current) {
+            prevIndexRef.current = prevIndex
+        }
+
+    }, [isLoop, isShuffle, index, queue,setSource])
+
+
+
+    //load player
     useEffect(() => {
         try {
             const str = localStorage.getItem(STORAGE_KEY);
@@ -47,25 +167,20 @@ export function usePlayer() {
             if (saved.queue && saved.index >= 0) {
                 const song = saved.queue[saved.index];
                 setCurrent(song);
-
-                audioRef.current.src = song.path + song.songUrl;
-
+                setSource(audioRef, song)
                 // restore time
                 if (saved.currentTime) {
                     audioRef.current.currentTime = saved.currentTime;
                 }
-
-                setisActive(true);
             }
 
         } catch (e) {
             console.error("Failed to load player state", e);
         }
-    }, []);
+    }, [setSource]);
 
+    //update player
     useEffect(() => {
-        if (!isActive) return;
-
         const data = {
             queue,
             index,
@@ -76,90 +191,21 @@ export function usePlayer() {
         localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
         localStorage.setItem(LastPlayList_Key, encodeID(current?.path))
 
-    }, [queue, index, isLoop, isShuffle, isActive, isPlaying]);
+    }, [queue, index, isLoop, isShuffle, isPlaying, current]);
 
-    const play = () => {
-        if (!isActive) return;
-        audioRef.current.play().catch(() => {
-            setIsPlaying(false);
-        });
-        setIsPlaying(true);
-    };
 
-    const pause = () => {
-        if (!isActive) return;
-        audioRef.current.pause();
-        setIsPlaying(false);
-    };
 
-    const load = (list, Playlist = null, start = 0) => {
-        PlaylistMetaRef.current = Playlist;
-        setQueue(list);
-        setIndex(start);
-        setCurrent(list[start]);
-        audioRef.current.src = list[start].path + list[start].songUrl;
-        setisActive(true)
-        audioRef.current.play().catch(() => {
-            setIsPlaying(false);
-        });
-        setIsPlaying(true);
-    };
+    //resolve play when user want
+    useEffect(() => {
+        if (!current) return;
 
-    const next = () => {
-        if (!isActive) return;
-        if (queue.length === 0) return;
+        if (!shouldPlayRef.current) return;
 
-        let i = index;
-        if (!isLoop) {
-            if (isShuffle) {
-                let a = Math.floor(Math.random() * queue.length);
-                if (a === index) {
-                    a = (a + 1) % queue.length;
-                }
-                i = a;
-            }
-            else {
-                i = index + 1;
-            }
-        }
-        if (queue.length === 0) return;
-        i = i % queue.length;
+        audioRef.current.play()
+            .then(() => setIsPlaying(true))
+            .catch(() => setIsPlaying(false));
 
-        setIndex(i);
-        setCurrent(queue[i]);
-        audioRef.current.src = queue[i].path + queue[i].songUrl;
-        seek(0)
-        audioRef.current.play().catch(() => {
-            setIsPlaying(false);
-        });
-        setIsPlaying(true);
-    };
-
-    const prev = () => {
-        if (queue.length === 0) return;
-        let i = index;
-
-        if (!isLoop) {
-            i = index - 1;
-        }
-
-        if (i < 0) i = queue.length - 1;
-
-        setIndex(i);
-        setCurrent(queue[i]);
-        audioRef.current.src = queue[i].path + queue[i].songUrl;
-        seek(0);
-        audioRef.current.play().catch(() => {
-            setIsPlaying(false);
-        });
-        setIsPlaying(true);
-    };
-
-    const toggle = () => isPlaying ? pause() : play();
-
-    const seek = (time) => {
-        audioRef.current.currentTime = time;
-    };
+    }, [current]);
 
     //auto next
     useEffect(() => {
@@ -171,8 +217,22 @@ export function usePlayer() {
         return () => {
             audio.removeEventListener("ended", handleEnd);
         };
-    }, []);
+    }, [next]);
 
+    //checking songs in existing playlist
+    useEffect(() => {
+        if (!playlist.ready || !current) return;
+
+        const id = encodeID(current.path);
+        const exists = playlist.playlists.some(p => p.id === id);
+
+        console.log("exist check", exists, id, "sdf",current.path)
+
+        if (!exists) reset();
+    }, [current, playlist.ready, playlist.playlists, reset]);
+
+
+    //title update
     useEffect(() => {
         if (current) {
             document.title = `${isPlaying ? "▶" : "⏸"} ${current.title} • ${APP_NAME}`;
@@ -195,7 +255,7 @@ export function usePlayer() {
             audio.removeEventListener("waiting", loading);
             audio.removeEventListener("playing", canPlay);
         };
-    }, []);
+    }, [index]);
 
 
 
@@ -204,7 +264,9 @@ export function usePlayer() {
         index,
         current,
         isPlaying,
-        isActive,
+        isActive: current ? true : false,
+        isNext: (nextIndexRef.current >= 0),
+        isPrev: (prevIndexRef.current >= 0),
         audioRef,
 
         play,
@@ -223,6 +285,9 @@ export function usePlayer() {
 
         isLoading,
 
-        reset
+        reset,
+
+        isVisible,
+        setIsVisible
     };
 }

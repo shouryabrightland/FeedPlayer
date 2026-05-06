@@ -55,6 +55,7 @@ export function getAverageColor(src) {
 
             resolve(`rgb(${r}, ${g}, ${b})`);
         };
+        img.onerror = () => resolve("rgb(0,0,0)");
 
         img.src = src;
     });
@@ -66,4 +67,13 @@ function enhanceColor(r, g, b) {
         Math.min(255, g * factor),
         Math.min(255, b * factor)
     ];
+}
+
+
+export function resolveURL(base, relative) {
+    try {
+        return new URL(relative, base).href;
+    } catch {
+        return null;
+    }
 }

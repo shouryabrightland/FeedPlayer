@@ -1,0 +1,3491 @@
+\n===== src/App.test.js =====\n
+import { render, screen } from '@testing-library/react';
+import App from './App';
+
+test('renders learn react link', () => {
+  render(<App />);
+  const linkElement = screen.getByText(/learn react/i);
+  expect(linkElement).toBeInTheDocument();
+});
+\n===== src/reportWebVitals.js =====\n
+const reportWebVitals = onPerfEntry => {
+  if (onPerfEntry && onPerfEntry instanceof Function) {
+    import('web-vitals').then(({ getCLS, getFID, getFCP, getLCP, getTTFB }) => {
+      getCLS(onPerfEntry);
+      getFID(onPerfEntry);
+      getFCP(onPerfEntry);
+      getLCP(onPerfEntry);
+      getTTFB(onPerfEntry);
+    });
+  }
+};
+
+export default reportWebVitals;
+\n===== src/components/sm_components.js =====\n
+export function PlayBtn({isPlaying , isLoading, styles}) {
+    if (isLoading) {
+        return (
+            < svg className="icon" viewBox="0 0 200 200" >
+                <radialGradient id="a3" cx=".66" fx=".66" cy=".3125" fy=".3125" gradientTransform="scale(1.5)">
+                    <stop offset="0" stopColor="#888888"></stop>
+                    <stop offset=".3" stopColor="#888888" stopOpacity=".9"></stop>
+                    <stop offset=".6" stopColor="#888888" stopOpacity=".6"></stop>
+                    <stop offset=".8" stopColor="#888888" stopOpacity=".3"></stop>
+                    <stop offset="1" stopColor="#888888" stopOpacity="0"></stop>
+                </radialGradient>
+                <circle transformOrigin="center" fill="none" stroke="url(#a3)" strokeWidth="15" strokeLinecap="round" strokeDasharray="200 1000" strokeDashoffset="0" cx="100" cy="100" r="70">
+                    <animateTransform type="rotate" attributeName="transform" calcMode="spline" dur="0.5" values="360;0" keyTimes="0;1" keySplines="0 0 1 1" repeatCount="indefinite"></animateTransform>
+                </circle>
+                <circle transformOrigin="center" fill="none" opacity=".2" stroke="#888888" strokeWidth="15" strokeLinecap="round" cx="100" cy="100" r="70"></circle>
+            </svg >
+        )
+    }
+    else if (isPlaying) return <svg className={`icon ${styles.icon}`} viewBox="0 0 24 24"><path d="M5.7 3a.7.7 0 0 0-.7.7v16.6a.7.7 0 0 0 .7.7h2.6a.7.7 0 0 0 .7-.7V3.7a.7.7 0 0 0-.7-.7zm10 0a.7.7 0 0 0-.7.7v16.6a.7.7 0 0 0 .7.7h2.6a.7.7 0 0 0 .7-.7V3.7a.7.7 0 0 0-.7-.7z"></path></svg>;
+    return <svg className={`icon ${styles.icon}`} viewBox="0 0 24 24"><path d="m7.05 3.606 13.49 7.788a.7.7 0 0 1 0 1.212L7.05 20.394A.7.7 0 0 1 6 19.788V4.212a.7.7 0 0 1 1.05-.606"></path></svg>
+}
+
+export function getAverageColor(src) {
+    return new Promise((resolve) => {
+        const img = new Image();
+        img.crossOrigin = "anonymous"; // ⚠️ needed if external images
+
+        img.onload = () => {
+            const canvas = document.createElement("canvas");
+            const ctx = canvas.getContext("2d");
+
+            // 🔥 downscale for performance
+            const size = 50;
+            canvas.width = size;
+            canvas.height = size;
+
+            ctx.drawImage(img, 0, 0, size, size);
+
+            const data = ctx.getImageData(0, 0, size, size).data;
+
+            let r = 0, g = 0, b = 0;
+            const total = data.length / 4;
+
+            for (let i = 0; i < data.length; i += 4) {
+                r += data[i];
+                g += data[i + 1];
+                b += data[i + 2];
+            }
+
+            r = Math.floor(r / total);
+            g = Math.floor(g / total);
+            b = Math.floor(b / total);
+
+            [r,g,b] = enhanceColor(r,g,b)
+
+            resolve(`rgb(${r}, ${g}, ${b})`);
+        };
+
+        img.src = src;
+    });
+}
+function enhanceColor(r, g, b) {
+    const factor = 1.2; // boost vibrance
+    return [
+        Math.min(255, r * factor),
+        Math.min(255, g * factor),
+        Math.min(255, b * factor)
+    ];
+}\n===== src/components/shareContent.js =====\n
+// utils/share.js
+export async function shareContent({ title, text, url }) {
+    // Native share (best UX)
+    if (navigator.share) {
+        try {
+            await navigator.share({ title, text, url });
+            return { success: true, method: "native" };
+        } catch (err) {
+            // user cancelled → don't treat as failure
+            return { success: false, reason: "cancelled" };
+        }
+    }
+
+    // Fallback: copy to clipboard
+    try {
+        await navigator.clipboard.writeText(url);
+        return { success: true, method: "clipboard" };
+    } catch (err) {
+        // last fallback: manual prompt
+        window.prompt("Copy this link:", url);
+        return { success: true, method: "prompt" };
+    }
+}\n===== src/page/Player/Player.js =====\n
+import { useEffect, useState, useRef } from "react";
+
+import { BackIcon, DetailIcon, LikeIcon } from "../../icons"
+
+import { usePlayerCtx } from "../../core/PlayerProvider"
+import { getAverageColor, PlayBtn } from "../../components/sm_components";
+import CardPlayer from "./cardPlayer";
+import PlayerBackdrop from "./Backdrop"
+
+import PlayerStyles from "./player.module.css"
+import { PlayerControl, ProgressBar } from "./components";
+import { NO_IMAGE_URL } from "../../const";
+
+
+
+export default function Player() {
+    const player = usePlayerCtx();
+    const [isVisible, setIsVisible] = useState(false);
+    const [coverArtMinimize, setCoverArtMinimize] = useState(false);
+    const [bg, setBg] = useState(null)
+    const song = player.current;
+    const thumbnailUrl = song?.path + song?.thumbnail
+
+    useEffect(() => {
+        if (!thumbnailUrl) return;
+        getAverageColor(thumbnailUrl).then((rgb) => {
+            setBg(rgb)
+        })
+    }, [thumbnailUrl])
+
+    return (<>
+        <CardPlayer player={player} isVisible={isVisible} setVisible={setIsVisible} theme={bg}/>
+        <PlayerLayOut isVisible={isVisible}>
+            <PlayerBackdrop player={player} isVisible={isVisible}
+            minimize={coverArtMinimize} bgcolor={bg}/>
+            <div className={`${PlayerStyles.main} ${coverArtMinimize ? PlayerStyles.enableFeed : ""}`}>
+                <PlayerHeader title={song?.title} onBack={() => setIsVisible(false)} />
+                <CoverArt song={song} minimize={coverArtMinimize} setMinimize={setCoverArtMinimize} />
+                <PlayerMeta song={song} />
+                <ProgressBar player={player} />
+                <PlayerControl player={player} />
+            </div>
+        </PlayerLayOut>
+    </>
+    )
+}
+
+
+function CoverArt({ song, minimize, setMinimize }) {
+    const toggle = ()=>setMinimize(!minimize)
+    const url = song?.path + song?.thumbnail || NO_IMAGE_URL;
+    if(url)
+    return (
+        <div className={`${PlayerStyles.coverArt} ${minimize ? PlayerStyles.minimize : ""}`}>
+            <div className={PlayerStyles.thumbnail}>
+                <img src={url} onClick={toggle} />
+            </div>
+        </div>
+    )
+}
+
+
+function PlayerMeta({ song }) {
+    return (
+        <div className={PlayerStyles.meta}>
+            <div className={PlayerStyles.info}>
+                <div className={PlayerStyles.name}>{song?.title}</div>
+                <div className="desc">{song?.description}</div>
+            </div>
+            <div className={PlayerStyles.likeBtn}>
+                <LikeIcon />
+            </div>
+        </div>
+    )
+}
+
+
+function PlayerHeader({ onBack, title }) {
+    return (
+        <div className={PlayerStyles.header}>
+            <div onClick={onBack}>
+                <span>
+                    <BackIcon />
+                </span>
+            </div>
+            <div className={PlayerStyles.title}>
+                {title}
+            </div>
+            <div className={PlayerStyles.options}>
+                <span>
+                    <DetailIcon />
+                </span>
+            </div>
+        </div>
+    )
+}
+
+function PlayerLayOut({ children, isVisible }) {
+    return (
+        <div className={isVisible ? PlayerStyles.outerPlayer : `${PlayerStyles.outerPlayer} ${PlayerStyles.min}`}>
+            <div className={PlayerStyles.player}>
+                {children}
+            </div>
+        </div>
+    )
+}\n===== src/page/Player/Backdrop.js =====\n
+import React, { useRef, useEffect, useMemo, useState } from "react";
+import styles from "./player.module.css";
+
+function PlayerBackdrop({ player, isVisible, minimize, bgcolor }) {
+    const containerRef = useRef(null);
+    const videoRefs = useRef({});
+    const itemHeightRef = useRef(window.innerHeight);
+    const scrollTimeout = useRef(null);
+    const isUserActiveRef = useRef(false);
+    const idleTimeoutRef = useRef(null);
+
+    const [index, setIndex] = useState(0);
+
+    const isPlaying = player.isPlaying;
+    const mediaRaw = player.current?.media || [];
+
+    // ✅ shuffle once per song
+    const media = useMemo(() => {
+        const arr = [...mediaRaw];
+        for (let i = arr.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [arr[i], arr[j]] = [arr[j], arr[i]];
+        }
+        return arr;
+    }, [mediaRaw]);
+
+    // ✅ resize
+    useEffect(() => {
+        const onResize = () => {
+            itemHeightRef.current = window.innerHeight;
+        };
+        window.addEventListener("resize", onResize);
+        return () => window.removeEventListener("resize", onResize);
+    }, []);
+
+    // ✅ scroll → index (controlled)
+    useEffect(() => {
+        if (!isVisible) return;
+
+        const container = containerRef.current;
+        if (!container) return;
+
+        const onScroll = () => {
+            clearTimeout(scrollTimeout.current);
+
+            scrollTimeout.current = setTimeout(() => {
+                const h = itemHeightRef.current;
+                const newIndex = Math.round(container.scrollTop / h);
+
+                setIndex(newIndex); // 🔥 ONLY ON SCROLL END
+            }, 120); // sweet spot (100–150ms)
+        };
+
+        container.addEventListener("scroll", onScroll);
+
+        return () => {
+            container.removeEventListener("scroll", onScroll);
+            clearTimeout(scrollTimeout.current);
+        };
+    }, [isVisible]);
+
+    // ✅ initial infinite position
+    useEffect(() => {
+        const container = containerRef.current;
+        if (!container || !media.length) return;
+
+        const h = itemHeightRef.current;
+        const startIndex = media.length * 100;
+
+        container.scrollTop = startIndex * h;
+        setIndex(startIndex);
+    }, [media]);
+
+    // ✅ virtualization (ONLY 5 ITEMS)
+    const visibleItems = useMemo(() => {
+        if (media.length == 0) return [];
+        const buffer = 2;
+        const items = [];
+
+        for (let i = index - buffer; i <= index + buffer; i++) {
+            const realIndex =
+                ((i % media.length) + media.length) % media.length;
+
+            items.push({
+                ...media[realIndex],
+                virtualIndex: i
+            });
+        }
+        return items;
+    }, [index, media]);
+
+    // ✅ VIDEO CONTROL (FIXED)
+    useEffect(() => {
+        Object.entries(videoRefs.current).forEach(([key, video]) => {
+            const vIndex = Number(key);
+            const distance = Math.abs(vIndex - index);
+
+            if (!video) return;
+
+            if (!isVisible || !isPlaying) {
+                video.pause();
+                return;
+            }
+
+            if (distance === 0) {
+                video.preload = "auto";
+                video.play().catch(() => { });
+            } else if (distance === 1) {
+                video.preload = "metadata";
+                video.pause();
+            } else {
+                video.pause();
+            }
+        });
+    }, [index, isPlaying, isVisible]);
+
+    useEffect(() => {
+        if (!isVisible) return;
+
+        const container = containerRef.current;
+        if (!container) return;
+
+        const markActive = () => {
+            isUserActiveRef.current = true;
+
+            clearTimeout(idleTimeoutRef.current);
+            idleTimeoutRef.current = setTimeout(() => {
+                isUserActiveRef.current = false;
+            }, 20000); // 🔥 cooldown (tune this)
+        };
+
+        container.addEventListener("pointerdown", markActive);
+        container.addEventListener("wheel", markActive);
+        container.addEventListener("touchstart", markActive);
+
+        return () => {
+            container.removeEventListener("pointerdown", markActive);
+            container.removeEventListener("wheel", markActive);
+            container.removeEventListener("touchstart", markActive);
+        };
+    }, [isVisible]);
+
+    useEffect(() => {
+        if (!isVisible || !isPlaying || !media.length) return;
+
+        const container = containerRef.current;
+        if (!container) return;
+
+        let timer;
+
+        const loop = () => {
+            // ❌ user interacting → skip
+            if (isUserActiveRef.current) {
+                timer = setTimeout(loop, 1000);
+                return;
+            }
+
+            const h = itemHeightRef.current;
+
+            const currentIndex = Math.round(container.scrollTop / h);
+            const next = currentIndex + 1;
+
+            container.scrollTo({
+                top: next * h,
+                behavior: "smooth"
+            });
+
+            timer = setTimeout(loop, 4000);
+        };
+
+        timer = setTimeout(loop, 2000);
+
+        return () => clearTimeout(timer);
+    }, [isVisible, isPlaying, media]);
+
+    const resolveSrc = (src) => {
+        if (!src) return "";
+        if (src.startsWith("http")) return src;
+        return (player.current?.path || "") + src;
+    };
+
+    return (
+        <div
+            ref={containerRef}
+            className={`${styles.backdropFeed} ${!minimize ? styles.blur : ""}`}
+            style={{ backgroundColor: bgcolor }}
+        >
+            <div
+                style={{
+                    height: `${media.length * 1000 * itemHeightRef.current}px`,
+                    position: "relative"
+                }}
+            >
+                {visibleItems.map((item) => {
+                    const top = item.virtualIndex * itemHeightRef.current;
+
+                    const distance = Math.abs(item.virtualIndex - index);
+
+                    // 🎯 effects (cheap + smooth)
+                    const scale = Math.max(0.85, 1 - distance * 0.08);
+                    const opacity = Math.max(0.3, 1 - distance * 0.25);
+
+                    return (
+                        <div
+                            key={item.virtualIndex}
+                            className={styles.feedItem}
+                            style={{
+                                transform: `translateY(${top}px) scale(${scale})`,
+                                opacity,
+                                transition: "transform 0.25s ease-out, opacity 0.25s ease-out"
+                            }}
+                        >
+                            {item.type === "video" ? (
+                                <video
+                                    ref={(el) => {
+                                        if (el) videoRefs.current[item.virtualIndex] = el;
+                                        else delete videoRefs.current[item.virtualIndex];
+                                    }}
+                                    src={resolveSrc(item.src)}
+                                    muted
+                                    loop
+                                    playsInline
+                                    preload="metadata"
+                                />
+                            ) : (
+                                <img src={resolveSrc(item.src)} alt="" loading="lazy" />
+                            )}
+                        </div>
+                    );
+                })}
+            </div>
+        </div>
+    );
+}
+
+// function PlayerBackdrop({ player, isVisible, minimize, bgcolor }) {
+//     console.log("r")
+// }
+
+
+export default React.memo(PlayerBackdrop);\n===== src/page/Player/components.js =====\n
+import { useEffect, useRef, useState } from "react";
+
+import { LoopIcon, NextIcon, PreviousIcon, SuffleIcon } from "../../icons"
+import { getAverageColor, PlayBtn } from "../../components/sm_components";
+
+import PlayerStyles from "./player.module.css"
+
+export function LoopBtn({active}) {
+    return (
+        <span className={active ? PlayerStyles.green:""}>
+            <LoopIcon styles={PlayerStyles}/>
+        </span>
+    )
+}
+
+export function SuffleBtn({active}) {
+    return (
+        <span className={active? PlayerStyles.green:""}>
+            <SuffleIcon styles={PlayerStyles}/>
+        </span>
+    )
+}
+
+
+export function PlayerControl({ player }) {
+    const {
+        toggle,
+        next,
+        prev,
+        isPlaying,
+        isLoop,
+        isShuffle,
+        setIsLoop,
+        setIsShuffle
+    } = player;
+
+    const toggleLoop = ()=>setIsLoop(!isLoop)
+    const toggleShuffle = ()=>setIsShuffle(!isShuffle)
+
+    const isLoading = player.isLoading
+    const toggleBtn = ()=>{
+        if(!isLoading) toggle()
+    }
+
+    return (
+        <div className={PlayerStyles.playerControl}>
+            <div className={PlayerStyles.options}>
+
+                {/* Shuffle */}
+                <div className={PlayerStyles.opt} onClick={toggleShuffle}>
+                    <SuffleBtn active={isShuffle} />
+                </div>
+
+                {/* Previous */}
+                <div className={PlayerStyles.opt} onClick={prev}>
+                    <span>
+                        <PreviousIcon styles={PlayerStyles}/>
+                    </span>
+                </div>
+
+                {/* Play / Pause */}
+                <div className={`${PlayerStyles.opt} ${PlayerStyles.playbtn}`} onClick={toggleBtn}>
+                    <PlayBtn styles={PlayerStyles} isPlaying={isPlaying} isLoading={isLoading} />
+                </div>
+
+                {/* Next */}
+                <div className={PlayerStyles.opt} onClick={next}>
+                    <span>
+                        <NextIcon styles={PlayerStyles}/>
+                    </span>
+                </div>
+
+                {/* Loop */}
+                <div className={PlayerStyles.opt} onClick={toggleLoop}>
+                    <LoopBtn active={isLoop} />
+                </div>
+
+            </div>
+        </div>
+    );
+}
+
+
+
+export function ProgressBar({ player }) {
+    const barRef = useRef(null);
+    const progressRef = useRef(null);
+    const bufferRef = useRef(null);
+
+    const wasPlayingRef = useRef(false);
+    const rafRef = useRef(null);
+
+    const [time, setTime] = useState({ current: 0, duration: 0 });
+    const [dragging, setDragging] = useState(false);
+
+    useEffect(() => {
+        const audio = player.audioRef.current;
+        if (!audio) return;
+
+        const updateUI = () => {
+            if (!audio.duration) return;
+
+            const current = audio.currentTime;
+            const duration = audio.duration;
+
+            // progress
+            if (progressRef.current) {
+                progressRef.current.style.width =
+                    (current / duration) * 100 + "%";
+            }
+
+            // buffer
+            if (bufferRef.current && audio.buffered.length) {
+                const end = audio.buffered.end(audio.buffered.length - 1);
+                bufferRef.current.style.width =
+                    (end / duration) * 100 + "%";
+            }
+
+            // labels (low freq safe)
+            setTime({ current, duration });
+        };
+
+        const rafLoop = () => {
+            updateUI();
+            rafRef.current = requestAnimationFrame(rafLoop);
+        };
+
+        const startRAF = () => {
+            if (rafRef.current) return;
+            rafRef.current = requestAnimationFrame(rafLoop);
+        };
+
+        const stopRAF = () => {
+            if (rafRef.current) {
+                cancelAnimationFrame(rafRef.current);
+                rafRef.current = null;
+            }
+        };
+
+        const onTimeUpdate = () => {
+            if (!audio.duration || !audio.paused) return;
+            updateUI();
+        };
+
+        const onVisibility = () => {
+            if (document.hidden) stopRAF();
+            else if (!audio.paused) startRAF();
+        };
+
+        audio.addEventListener("play", startRAF);
+        audio.addEventListener("pause", stopRAF);
+        audio.addEventListener("ended", stopRAF);
+        audio.addEventListener("timeupdate", onTimeUpdate);
+        document.addEventListener("visibilitychange", onVisibility);
+
+        return () => {
+            stopRAF();
+            audio.removeEventListener("play", startRAF);
+            audio.removeEventListener("pause", stopRAF);
+            audio.removeEventListener("ended", stopRAF);
+            audio.removeEventListener("timeupdate", onTimeUpdate);
+            document.removeEventListener("visibilitychange", onVisibility);
+        };
+    }, [player.audioRef]);
+
+    // 🎯 Drag logic
+    useEffect(() => {
+        if (!dragging) return;
+
+        const move = (e) => handleSeek(e);
+        const up = () => {
+            setDragging(false);
+            if (wasPlayingRef.current) player.play();
+        };
+
+        window.addEventListener("pointermove", move);
+        window.addEventListener("pointerup", up);
+
+        return () => {
+            window.removeEventListener("pointermove", move);
+            window.removeEventListener("pointerup", up);
+        };
+    }, [dragging]);
+
+    function handlePointerDown(e) {
+        const audio = player.audioRef.current;
+        if (!audio) return;
+
+        wasPlayingRef.current = player.isPlaying;
+        setDragging(true);
+        player.pause();
+        handleSeek(e);
+    }
+
+    function handleSeek(e) {
+        const audio = player.audioRef.current;
+        if (!audio || !barRef.current) return;
+
+        const rect = barRef.current.getBoundingClientRect();
+        let x = e.clientX - rect.left;
+
+        x = Math.max(0, Math.min(x, rect.width));
+
+        const percent = x / rect.width;
+        audio.currentTime = percent * (audio.duration || 0);
+    }
+
+    function format(t) {
+        if (!t) return "0:00";
+        const m = Math.floor(t / 60);
+        const s = Math.floor(t % 60).toString().padStart(2, "0");
+        return `${m}:${s}`;
+    }
+
+    return (
+        <div className={PlayerStyles.progressBar} ref={barRef} onPointerDown={handlePointerDown}>
+            <div className={PlayerStyles.bar}>
+                <div ref={bufferRef} className={PlayerStyles.buffer}></div>
+                <div ref={progressRef} className={PlayerStyles.progress}></div>
+            </div>
+
+            <div className={PlayerStyles.label}>
+                <span className={PlayerStyles.start}>{format(time.current)}</span>
+                <span className={PlayerStyles.end}>{format(time.duration)}</span>
+            </div>
+        </div>
+    );
+}\n===== src/page/Player/player.module.css =====\n
+.green .icon{
+  --color:var(--green) !important;
+}
+
+.outerPlayer {
+    position: absolute;
+    max-width: 100%;
+    width: 100%;
+    height: 100%;
+    transition: .4s;
+    z-index: 100;
+    top: 0;
+}
+
+.player {
+    max-width: 100%;
+    height: 100%;
+    position: relative;
+}
+
+.player .main {
+    position: absolute;
+    background: radial-gradient(transparent 0%, rgba(0, 0, 0, 0.8) 100%);
+    width: 100%;
+    height: calc(100%);
+    z-index: 10;
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    box-sizing: border-box;
+    padding-bottom: 20px;
+}
+
+.player .main.enableFeed{
+    pointer-events: none;
+}
+
+.player .header,
+.progressBar,
+.coverArt .thumbnail>*,
+.playerControl,
+.player .playbtn,
+.player .options {
+    pointer-events: auto;
+}
+
+.player .header {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.player .icon {
+    width: 24px;
+    height: 24px;
+    --color: white;
+    padding: 10px;
+
+}
+
+.player .header .title {
+    font-weight: 800;
+    font-size: 18px;
+    color: white;
+}
+
+.coverArt {
+    width: 100%;
+    margin: 10px 0 0 0;
+    height: 100%;
+    transition: width 0.2s ease;
+    opacity: 1;
+}
+.coverArt.minimize .thumbnail{
+    align-items: end;
+    justify-content: start;
+}
+.coverArt.minimize .thumbnail> *{
+    border-radius: 10px;
+    box-shadow: 0 0 20px -2px black;
+    position: absolute;
+    top: 100%;
+    left: 0%;
+    transform: translate(-28%, -72%) scale(0.4);
+    transition: 0.4s ease;
+}
+
+.coverArt .thumbnail {
+    overflow: hidden;
+    height: 100%;
+    width: 100%;
+    position: relative;
+    object-fit: contain;
+}
+
+.coverArt .thumbnail>* {
+    border-radius: 10px;
+    box-shadow: 0 0 20px -2px black;
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 60%;
+    transform: translate(-50%, -50%);
+    transition: 0.4s ease;
+    /* aspect-ratio: 1 / 1; */
+}
+
+.meta {
+    margin: 10px 0;
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.meta .info {
+    padding-left: 10px;
+    display: flex;
+    flex-direction: column;
+    align-items: baseline;
+    justify-content: center;
+    color: white;
+}
+
+.meta .name {
+    font-weight: 800;
+    font-size: 20px;
+}
+
+.progressBar {
+    max-width: 100%;
+    padding: 10px;
+    touch-action: none;
+}
+
+.progressBar .bar {
+    width: 100%;
+    height: 4px;
+    background-color: #8080801f;
+    border-radius: 2px;
+    user-select: none;
+    -webkit-user-select: none;
+    /* Safari */
+    -ms-user-select: none;
+    /* old Edge */
+    position: relative;
+}
+
+.progressBar .progress {
+    width: 10%;
+    background-color: white;
+    border-radius: 2px;
+    height: 100%;
+    z-index: 2;
+    position: absolute;
+}
+.progressBar .buffer{
+        width: 16%;
+    background-color: #ffffff3d;
+    border-radius: 2px;
+    height: 100%;
+    position: absolute;
+    z-index: 1;
+}
+
+.progressBar .label {
+    width: 100%;
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
+    color: var(--grey);
+    font-size: 11px;
+    margin-top: 8px;
+    user-select: none;
+    -webkit-user-select: none;
+    /* Safari */
+    -ms-user-select: none;
+    /* old Edge */
+}
+
+.playerControl {
+    width: 100%;
+    margin-top: 20px;
+}
+
+.playerControl .options {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.playerControl .playbtn {
+    padding: 10px;
+    box-shadow: 0 0 10px -2px black;
+    background-color: white;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 44px;
+    aspect-ratio: 1 / 1;
+}
+
+.player .playbtn .icon {
+    --color: black;
+}
+
+.outerPlayer.min {
+    transform: translate(0, 110%);
+    opacity: 0;
+}
+
+
+/* card */
+
+.outerPlayerCard {
+    width: 100%;
+    padding: 10px;
+    position: absolute;
+    bottom: 70px;
+    box-sizing: border-box;
+    transition: 0.3s;
+    --bg:rgba(0, 0, 0, 0.568);
+}
+
+.outerPlayerCard.min {
+    transform: translate(0, 200%);
+}
+
+
+.playerCard {
+    width: 100%;
+    background: linear-gradient(45deg, black, var(--bg));
+    box-shadow: 0 0 1px 0px var(--grey);
+    border-radius: 5px;
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    backdrop-filter: blur(40px);
+    position: relative;
+}
+
+.playerCard .info {
+    color: white;
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    justify-content: center;
+}
+
+.playerCard .info .title {
+    padding-bottom: 2px;
+    font-size: 18px;
+    font-weight: 800;
+}
+
+.playerCard .info .description {
+    font-size: 12px;
+    color: var(--grey);
+}
+
+.playerCard .playbtn {
+    padding: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    aspect-ratio: 1 / 1;
+    height: 100%;
+   
+}
+.icon{
+    filter: drop-shadow(0px 0px 12px black);
+    -webkit-filter: drop-shadow(0px 0px 12px black);
+}
+
+.playerCard .thumbnail {
+    width: 50px;
+    aspect-ratio: 1 / 1;
+    border-radius: 10px;
+    margin: 10px;
+    background-color: var(--grey);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.playerCard .thumbnail>* {
+    border-radius: 10px;
+    object-fit: cover;
+    width: 100%;
+    height: 100%;
+}
+
+.cardBar{
+    position: absolute;
+    height: 2.5px;
+    /* max-width: 100%; */
+    bottom: 0;
+    width: calc(100% - 20px);
+    margin: 0 10px;
+    box-sizing: border-box;
+    background-color: #ffffff85;
+}
+.cardBar .progress{
+    height: 100%;
+    background-color: white;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+/* feed */
+.backdropFeed {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    overflow-y: scroll;
+    z-index: 0;
+    background-color: white;
+    scroll-snap-type: y mandatory;
+    overscroll-behavior: contain;
+}
+.backdropFeed::after{
+    content: "";
+    position: fixed;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    transition: 0.5s;
+}
+.backdropFeed.blur::after{
+    backdrop-filter: blur(8px);
+    pointer-events: unset;
+}
+
+/* hide scrollbar (important for clean look) */
+.backdropFeed::-webkit-scrollbar {
+    display: none;
+}
+
+.feedItem {
+    width: 100%;
+    height: 100vh;
+    position: absolute;
+    overflow: hidden;
+    padding: 20px;
+    box-sizing: border-box;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    will-change: transform;
+    scroll-snap-align: start;
+    scroll-snap-stop: always;
+}
+
+/* media fill */
+.feedItem video,
+.feedItem img {
+    max-width: 100%;
+    max-height: 100%;
+    object-fit: contain;
+    border-radius: 20px;
+    box-shadow: 0 0 10px 0 black;
+    will-change: transform;
+    transform: translateZ(0);
+}
+
+/* optional dark overlay for readability */
+.feedItem::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+}\n===== src/page/Player/cardPlayer.js =====\n
+import { useRef,useEffect } from "react";
+
+import { PlayBtn } from "../../components/sm_components";
+
+import PlayerStyles from "./player.module.css";
+
+
+
+export default function CardPlayer({isVisible,setVisible, theme, player }) {
+    if (!player.isActive) return;
+    const toggle = player.toggle
+    const song = player.current
+    const thumbnailUrl = song?.path + song?.thumbnail
+    return (
+        <div className={player.isActive && !isVisible ? PlayerStyles.outerPlayerCard : `${PlayerStyles.outerPlayerCard} ${PlayerStyles.min}`}
+            style={{ '--bg': theme }}>
+            <div className={PlayerStyles.playerCard}>
+                <div className={PlayerStyles.thumbnail}>
+                    <img src={thumbnailUrl} />
+                </div>
+                <div className={PlayerStyles.info} onClick={()=>setVisible(true)}>
+                    <div className={PlayerStyles.title}>{song?.title}</div>
+                    <div className={PlayerStyles.description}>{song?.description}</div>
+                </div>
+                <div className={PlayerStyles.playbtn} onClick={toggle}>
+                    <PlayBtn styles={PlayerStyles} isPlaying={player.isPlaying} isLoading={player.isLoading} />
+                </div>
+                {!isVisible && <CardProgressBar player={player}/>}
+            </div>
+        </div>
+    )
+}
+
+
+
+function CardProgressBar({ player }) {
+    const barRef = useRef(null);
+
+    useEffect(() => {
+        let raf;
+
+        const update = () => {
+            const audio = player.audioRef.current;
+            if (audio && audio.duration) {
+                const progress = (audio.currentTime / audio.duration) * 100;
+                if (barRef.current) barRef.current.style.width = progress + "%";
+            }
+            raf = requestAnimationFrame(update);
+        };
+        raf = requestAnimationFrame(update);
+
+        return () => cancelAnimationFrame(raf);
+    }, [player.audioRef]);
+
+    return (
+        <div className={PlayerStyles.cardBar}>
+            <div
+                ref={barRef}
+                className={PlayerStyles.progress}
+            />
+        </div>
+    );
+}\n===== src/page/others/component.js =====\n
+import styles from "./styles.module.css"
+export function Container({title,message}){
+    return(
+        <div className={styles.container}>
+                <h2>{title}</h2>
+                <p>{message}</p>
+            </div>
+    )
+
+}\n===== src/page/others/404.js =====\n
+import ErrorPage from "./ErrorPage";
+export default function NotFound() {
+    return <ErrorPage title="404" message="Page Not Found"/>
+}\n===== src/page/others/LoadingPage.js =====\n
+import { Header } from "../navbar/Header";
+import { Container } from "./component";
+
+export default function LoadingPage({msg = "please wait"}) {
+  return (<>
+    <Header/>
+    <Container title="Loading..." message={msg}/>
+  </>)
+}\n===== src/page/others/styles.module.css =====\n
+.container{
+    width: calc(100% - 40px);
+    box-sizing: border-box;
+    margin: 20px;
+    padding: 20px;
+    border-radius: 10px;
+    box-shadow: 0 0 5px -3px var(--grey);
+    color: white;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    
+}
+.container > *{
+    margin: 5px;
+}
+button{
+    background-color: transparent;
+    padding: 20px;
+    border-radius: 10px;
+    outline: none;
+    border: unset;
+    box-shadow: 0 0 5px -3px var(--grey);
+    color: var(--grey);
+    font-size: 15px;
+    text-decoration: underline;
+}
+.outerContainer{
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+p{
+    color: var(--grey);
+}\n===== src/page/others/ErrorPage.js =====\n
+import { useNavigate } from "react-router-dom";
+import styles from "./styles.module.css";
+import { Header } from "../navbar/Header";
+import { Container } from "./component";
+export default function ErrorPage({title = "Error", message = "Something went wrong" }) {
+  const navigate = useNavigate();
+
+  return (
+    <>
+        <Header />
+        <div className={styles.outerContainer}>
+        <Container title={title} message={message}/>
+        <button onClick={() => navigate("/")}>
+            Go Home
+        </button>
+        </div>
+    </>
+  );
+}\n===== src/page/Home.js =====\n
+import React from "react";
+import { useState, useCallback } from "react";
+import { useNavigate } from "react-router-dom";
+
+import { usePlaylistCtx } from "../core/PlaylistProvider";
+
+import { Header } from "./navbar/Header";
+import { DeleteIcon } from "../icons";
+
+import HomeStyles from "./Home.module.css";
+
+
+export default function Home() {
+    return (
+        <HomeLayout>
+            <PlaylistList />
+        </HomeLayout>
+    )
+}
+
+function HomeLayout({ children }) {
+    return (
+        <div className={HomeStyles.Home}>
+            <Header />
+            {children}
+        </div>
+    )
+}
+
+const PlaylistList = React.memo(() => {
+    const { playlists, addPlaylist, removePlaylist, fetchPlaylist } = usePlaylistCtx();
+
+    const handleRemovePlaylist = (id) => {
+        removePlaylist(id); // ✅ use store
+    };
+
+    return (
+        <div className={`${HomeStyles.list} no-copy`}>
+            <div className={HomeStyles.heading}>
+                {playlists.length
+                    ? "Select the playlist below"
+                    : "No Playlist Found in your Device"}
+            </div>
+
+            {playlists.map((v) => (
+                <PlaylistCard
+                    playlist={v}
+                    key={v.id}
+                    removePlaylist={() => handleRemovePlaylist(v.id)}
+                />
+            ))}
+
+            <PlaylistAdd addPlaylist={addPlaylist} fetchPlaylist={fetchPlaylist} />
+        </div>
+    );
+})
+
+function PlaylistAdd({ addPlaylist, fetchPlaylist }) {
+    const [pop, set] = useState(false);
+    return (<>
+        <AddBtn set={set} />
+        {
+            pop &&
+            <PopOut set={set} addPlaylist={addPlaylist} fetchPlaylist={fetchPlaylist} />
+        }
+    </>
+    )
+}
+function PopOut({ set, addPlaylist, fetchPlaylist }) {
+    const [msg, setMsg] = useState("");
+    const handleChange = useCallback(async (e) => {
+        const id = e.target.value;
+        setMsg("");
+
+        const playlist = await fetchPlaylist(id);
+
+        if (!playlist) {
+            setMsg("No Playlist Found");
+            return;
+        }
+
+        addPlaylist(playlist); // ✅ pass full object
+        set(false);
+    }, [fetchPlaylist, addPlaylist, set]);
+    return (
+        <div className={`${HomeStyles.idPopOut}`}>
+            <div className={HomeStyles.backdrop} onClick={() => set(false)}></div>
+            <div className={HomeStyles.popout}>
+                <div className={HomeStyles.header}>Enter your Playlist ID</div>
+                <div className={HomeStyles.description}>(If provided by Owner)</div>
+                <input type="text" id={HomeStyles.key} className={HomeStyles.checking} onChange={handleChange} />
+                <span className={HomeStyles.msgSpan}>{msg}</span>
+            </div>
+        </div>
+    )
+}
+function AddBtn({ set }) {
+    const handleClick = () => set(true)
+    return (<div className={`${HomeStyles.item} ${HomeStyles.AddBtn}`} onClick={handleClick}>
+        <svg width="16" height="16" fill="currentColor" className="icon" viewBox="0 0 16 16">
+            <path d="M14 1a1 1 0 0 1 1 1v12a1 1 0 0 1-1 1H2a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1zM2 0a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V2a2 2 0 0 0-2-2z" />
+            <path d="M8 4a.5.5 0 0 1 .5.5v3h3a.5.5 0 0 1 0 1h-3v3a.5.5 0 0 1-1 0v-3h-3a.5.5 0 0 1 0-1h3v-3A.5.5 0 0 1 8 4" />
+        </svg>
+        <span className={HomeStyles.bottomText}>Add Playlist</span>
+    </div >)
+}
+
+function PlaylistCard({ playlist, removePlaylist }) {
+    const navigate = useNavigate()
+    const openPlaylist = () => navigate(`/playlist?k=${playlist.id}`)
+    console.log(playlist.isvalid,"sdfg")
+    return (
+        <div className={`${HomeStyles.item} ${(!playlist.isvalid)?HomeStyles.invalid:""}`}>
+            <div className={HomeStyles.side}>
+                <img src={playlist.thumbnail} onClick={openPlaylist} />
+            </div>
+            <div className={HomeStyles.header} onClick={openPlaylist}>
+                <div className={HomeStyles.info}>
+                    <div className={`${HomeStyles.title} ${HomeStyles.textOverflow}`}>
+                        {playlist.title}
+                    </div>
+                    <div className={`${HomeStyles.desc} ${HomeStyles.textOverflow}`}>
+                        {playlist.description}
+                    </div>
+                </div>
+                <div className={HomeStyles.options} onClick={(e) => {
+                    e.stopPropagation();
+                    removePlaylist();
+                }}>
+                    <DeleteIcon />
+                </div>
+            </div>
+        </div>
+    )
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+\n===== src/page/Playlist.module.css =====\n
+.playlist {
+    width: 100%;
+    overflow-y: auto;
+}
+
+/* ===== FIRST PAGE ===== */
+.firstpage {
+    --bg:black;
+    width: 100%;
+    height: calc(100% - 140px);
+    min-height: 500px;
+
+    background: radial-gradient(var(--bg) 0%, transparent 34%);
+    background-size: 500% 500%;
+    background-position: 50% 68%;
+
+    position: relative;
+    overflow: hidden;
+    transition: 0.5s;
+}
+
+/* thumbnail */
+.thumbnail {
+    width: 38.4%;
+    max-width: 500px;
+    min-width: 200px;
+    min-height: 200px;
+    aspect-ratio: 1 / 1;
+
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -75%);
+
+    box-shadow: 0 0 50px -13px black;
+}
+
+.thumbnail img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+/* ===== INFO ===== */
+.info {
+    display: flex;
+    flex-direction: column;
+    color: white;
+
+    position: absolute;
+    bottom: 0;
+    left: 0;
+
+    padding: 20px;
+    text-shadow: 0 0 10px black;
+    z-index: 10;
+    transition: 0.2s;
+}
+
+.title {
+    font-size: 26px;
+    font-weight: 800;
+}
+
+.desc {
+    font-size: 15px;
+}
+
+.playlistInfo {
+    font-size: 13px;
+    display: flex;
+    flex-wrap: nowrap;
+}
+
+/* ===== OPTIONS ===== */
+.options {
+    display: flex;
+    padding-top: 20px;
+}
+
+.item {
+    padding: 10px;
+    transition: 0.1s;
+}
+
+.opt:hover {
+    --color: white;
+    transform: scale(1.02);
+}
+
+.item:first-child{
+    padding-left: 0;
+}
+
+/* ===== PLAY BUTTON ===== */
+.outer_btn {
+    position: absolute;
+    bottom: 0;
+    right: 0;
+    transition: 0.2s;
+}
+
+.playbtn {
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    padding: 10px;
+
+    background-color: var(--green);
+    --color: black;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    margin-right: 30px;
+    margin-bottom: 20px;
+}
+
+/* ===== STATES ===== */
+.firstpageHidden {
+    background-position: 50% 100%;
+}
+
+.infoHidden {
+    transform: translateX(-100%);
+}
+
+.btnHidden {
+    transform: translateX(100%);
+}\n===== src/page/templateFX.module.css =====\n
+.loading{
+    width: 100%;
+    display: inline-block;
+    position: relative;
+}
+.loading::before{
+    content: "";
+    background: linear-gradient(158deg, black 30%, rgb(150, 150, 150) 50%, black 70%);
+    width: 100%;
+    position: absolute;
+    height: 100%;
+    display: inline-block;
+    border-radius: 10px;
+    background-size: 500%;
+    background-position-x: 0%;
+    animation: temp 2s ease-in-out infinite forwards;
+}
+@keyframes temp {
+    0%{
+        background-position-x:0% ;
+    }
+    100%{
+        background-position: 100%;
+    }
+    
+}\n===== src/page/Playlist.js =====\n
+import React from "react";
+import { useEffect, useRef, useState } from "react";
+import { useNavigate, useSearchParams } from "react-router-dom";
+
+import { usePlayerCtx } from "../core/PlayerProvider.js";
+import { fetchSongs } from "../services/SongServices.js";
+
+import { getAverageColor, PlayBtn } from "../components/sm_components.js";
+import { DetailIcon, LikeIcon, ShareIcon } from "../icons.js";
+
+import SongList from "./Playlist/Songlist.js";
+
+import PlaylistStyles from "./Playlist.module.css";
+import templateFXStyles from "./templateFX.module.css";
+import LoadingPage from "./others/LoadingPage.js";
+import ErrorPage from "./others/ErrorPage.js";
+import { LastPlayList_Key } from "../const.js";
+import { shareContent } from "../components/shareContent.js";
+
+import { _DBName, _StoreName, _DBVersion, _PlaylistKey } from "../const";
+import { usePlaylistCtx } from "../core/PlaylistProvider.js";
+
+
+export default React.memo(function PlayListPage() {
+    const [params] = useSearchParams();
+    const id = params.get("k") || localStorage.getItem(LastPlayList_Key);
+
+    const { addPlaylist, hasPlaylist, ready, fetchPlaylist} = usePlaylistCtx();
+
+    const navigate = useNavigate();
+
+    const [playlist, setPlaylist] = useState(null);
+    const [songs, setSongs] = useState([]);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState(null);
+
+    useEffect(() => {
+        if (!id) {
+            setError({title:"No Playlist Selected",
+                message:"Selected Playlist will be Shown Here"});
+            setLoading(false);
+            return;
+        }
+
+        let active = true;
+
+        (async () => {
+            try {
+                setLoading(true);
+
+                const data = await fetchPlaylist(id);
+                if (!active) return;
+
+                if (!data) {
+                    setError({title:"No Playlist Found",
+                        message:"Provide Link is invalid or Playlist is moved"});
+                    return;
+                }
+
+                setPlaylist(data);
+
+                if (ready && !hasPlaylist(data.id)) {
+                    addPlaylist(data);
+                }
+
+                const songsData = await fetchSongs(data.songsUrl);
+                if (!active) return;
+
+                setSongs((songsData || []).map(v => ({ ...v, path: data.path })));
+
+            } catch (e) {
+                if (!active) return;
+                setError({title:"Error",message: "Something Went Wrong"});
+            } finally {
+                if (active) setLoading(false);
+            }
+        })();
+
+        return () => {
+            active = false;
+        };
+    }, [id, ready]);
+
+    // intentionally excluding hasPlaylist & addPlaylist
+    // because they are unstable references
+
+    if (!ready || loading) return <LoadingPage />;
+    if (error) return <ErrorPage title={error.title} message={error.message} />;
+    if (!playlist) return <ErrorPage message="Failed to load playlists" />;
+
+    return (
+        <PlaylistLayOut>
+            <FirstPage thumbnailUrl={playlist.thumbnail}>
+                <PlaylistBtn songs={songs} playlist={playlist} />
+                <Info data={playlist} songs={songs} />
+            </FirstPage>
+            <SongList songs={songs} playlist={playlist} />
+        </PlaylistLayOut>
+    );
+})
+
+function Info({ data, songs }) {
+    const handleShare = async () => {
+        const result = await shareContent({
+            title: data.title,
+            text: data.description,
+            url: `${window.location.origin}${window.location.pathname}?k=${data.id}`
+        });
+
+        if (result.method === "clipboard") {
+            console.log("Link copied to clipboard");
+        }
+    };
+
+    return <div className={`${PlaylistStyles.info}`}>
+        {/* <div className={`${PlaylistStyles.info} ${isReady ? "" : styles.infoHidden}`}> */}
+        <Title text={data.title} />
+        <Description text={data.description} />
+        <PlayListMeta songs={songs} />
+        <Options>
+            <LikeIcon />
+            <ShareIcon onClick={handleShare} />
+            <DetailIcon />
+        </Options>
+    </div>
+}
+
+const PlayListMeta = React.memo(
+    function PlayListMeta({ songs }) {
+        console.log("rendering Playlist Meta")
+        return (<div className={`pt2 ${PlaylistStyles.playlistInfo}`}><Text>{`${songs?.length || 0} songs`}</Text></div>)
+
+    })
+
+function Description({ text }) {
+    return <div className={`pt1 ${PlaylistStyles.desc}`}><Text>{text}</Text></div>
+}
+function Title({ text }) {
+    return <div className={`pt1 ${PlaylistStyles.title}`}><Text>{text}</Text></div>
+}
+
+function Text({ children }) {
+    return children ?
+        <span>{children}</span> :
+        <span className={PlaylistStyles.TextBlank}>{templateFX()}</span>
+}
+
+function PlaylistBtn({ songs, playlist }) {
+    const player = usePlayerCtx()
+    const isActive = player.current?.path === playlist.path;
+    const isPlaying = isActive && player.isPlaying;
+    const isLoading = isActive && player.isLoading;
+
+    const onClick = () => {
+        if (isLoading) return;
+        if (isPlaying) {
+            player.toggle()
+        } else player.load(songs, playlist, 0);
+    }
+    return (
+        <div className={PlaylistStyles.outer_btn}>
+            <div className={PlaylistStyles.playbtn} onClick={onClick}>
+                <PlayBtn isPlaying={isPlaying} isLoading={isLoading} styles={PlaylistStyles} />
+            </div>
+        </div>
+    )
+}
+
+function PlaylistThumbnail({ url }) {
+    return (
+        <div className={PlaylistStyles.thumbnail}>
+            {url && <img src={url} />}
+        </div>
+    )
+}
+
+
+function Options({ children }) {
+    return (
+        <div className={PlaylistStyles.options}>
+            {React.Children.map(children, (child, i) => (
+                <div
+                    className={PlaylistStyles.item}
+                    key={i}
+                    onClick={child.props.onClick}
+                >
+                    {child}
+                </div>
+            ))}
+        </div>
+    )
+}
+
+function FirstPage({ children, thumbnailUrl }) {
+    const [bg, setBg] = useState(null)
+    useEffect(() => {
+        if (!thumbnailUrl) return;
+        getAverageColor(thumbnailUrl).then((rgb) => {
+            setBg(rgb)
+        })
+    }, [thumbnailUrl])
+    return (
+        <div className={`${PlaylistStyles.firstpage} ${bg ? "" : PlaylistStyles.firstpageHidden}`}
+            style={{ '--bg': `${bg}` }}>
+            <PlaylistThumbnail url={thumbnailUrl} />
+            {children}
+        </div>
+    )
+}
+
+function PlaylistLayOut({ children }) {
+    return (
+        <div className={PlaylistStyles.playlist}>
+            {children}
+        </div>
+    )
+}
+
+function templateFX() {
+    return <div className={templateFXStyles.loading}>.</div>
+}\n===== src/page/aboutMe/aboutMe.module.css =====\n
+.AboutMe {
+    width: 100%;
+    box-sizing: border-box;
+    color: white;
+}
+.header{
+    width: 100%;
+    padding: 20px 10px ;
+    box-sizing: border-box;
+    font-size: 20px;
+    color: white;
+    font-weight: 700;
+    box-shadow: 0 0 10px -6px var(--grey);
+}
+
+.container {
+    display: flex;
+    gap: 20px;
+    align-items: center;
+}
+.container > *{
+    flex: 1;
+    max-width: 50%;
+}
+
+.left {
+    max-width: 50%;
+}
+
+.right {
+    flex: 1;
+    display: flex;
+    justify-content: center;
+    max-width: 50%;
+}
+
+.face {
+    width: 40vw;
+    aspect-ratio: 1 / 1;
+    border-radius: 20px;
+    object-fit: cover;
+}
+
+.meta{
+    padding: 20px;
+}
+
+
+
+.meta h3 {
+    font-size: 24px;
+    margin-bottom: 5px;
+}
+
+.tagline {
+    opacity: 0.7;
+    margin-bottom: 15px;
+}
+
+.section {
+    margin-top: 15px;
+}
+
+.section h4 {
+    margin-bottom: 5px;
+    font-size: 16px;
+    opacity: 0.8;
+}\n===== src/page/aboutMe/aboutme.js =====\n
+import { ABOUT_ME_IMAGE } from "../../const";
+import css from "./aboutMe.module.css";
+
+export default function AboutMe() {
+    return (
+        <div className={css.AboutMe}>
+            <div className={css.header}>FeedPlayer</div>
+            <Meta />
+        </div>
+    );
+}
+function Meta() {
+    return (
+        <div className={css.meta}>
+            <h3>TryAngles (Webonacci)</h3>
+
+            <p className={css.tagline}>
+                Just building stuff and figuring things out.
+            </p>
+
+            <div className={css.section}>
+                <h4>Creator</h4>
+                <div className={css.container}>
+                    <p>
+                        I’m exploring the intersection of AI and human psychology, 
+                        currently building my foundation in programming and working 
+                        toward real-world AI projects.
+                    </p>
+                    <img className={css.face} src={ABOUT_ME_IMAGE} alt="creator" />
+                </div>
+            </div>
+
+            <div className={css.section}>
+                <h4>About This App</h4>
+                <p>
+                    A simple idea—scroll your memories while music plays.
+                     The goal is to make moments feel alive again, not just stored.
+                </p>
+            </div>
+            <div className={css.section}>
+                <h4>Tech Focus</h4>
+                <p>
+                    React • State Architecture
+                </p>
+            </div>
+        </div>
+    );
+}\n===== src/page/navbar/Header.js =====\n
+import { APP_NAME } from "../../const"
+import HeaderStyles from "./Hearder.module.css"
+
+export function Header(){
+    return(
+        <div className={`${HeaderStyles.header} no-copy`}>{APP_NAME}</div>
+    )
+}\n===== src/page/navbar/navbar.js =====\n
+import { useLocation, useNavigate } from "react-router-dom";
+import { HomeIcon, PlayListIcon } from "../../icons";
+import NavStyles from "./navbar.module.css";
+import { ABOUT_ME_IMAGE } from "../../const";
+
+export default function Navbar() {
+    const location = useLocation();
+    const navigate = useNavigate();
+
+    const isActive = (path) => location.pathname === path;
+
+    return (
+        <div className={`${NavStyles.navbar} no-copy`}>
+            
+            <div
+                className={`${NavStyles.item} ${isActive("/") ? NavStyles.active : ""}`}
+                onClick={() => navigate("/")}
+            >
+                <HomeIcon styles={NavStyles}/>
+                Home
+            </div>
+
+            <div
+                className={`${NavStyles.item} ${isActive("/playlist") ? NavStyles.active : ""}`}
+                onClick={() => navigate("/playlist")}
+            >
+                <PlayListIcon styles={NavStyles}/>
+                Playlist
+            </div>
+
+            <div
+                className={`${NavStyles.item} ${isActive("/aboutMe") ? NavStyles.active : ""}`}
+                onClick={() => navigate("/aboutme")}
+            >
+                <img className="icon" src={ABOUT_ME_IMAGE} style={{borderRadius:"50%"}}/>
+                About me
+            </div>
+
+        </div>
+    );
+}\n===== src/page/navbar/Hearder.module.css =====\n
+.header{
+    width: 100%;
+    padding: 20px 10px ;
+    box-sizing: border-box;
+    font-size: 20px;
+    color: white;
+    font-weight: 700;
+    box-shadow: 0 0 10px -6px var(--grey);
+}\n===== src/page/navbar/navbar.module.css =====\n
+.navbar{
+    width: 100%;
+    height: 70px;
+    background-color: rgba(9, 9, 9, 0.868);
+    position: absolute;
+    bottom: 0;
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: space-around;
+    transform: none;
+    transition: 0.2s;
+    
+}
+.item{
+    --color: rgb(179, 179, 179);
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    color: var(--color);
+    transition: 0.1s;
+}
+.item.active,
+.item:hover{
+    --color: white;
+}
+.item:hover{
+    transform: scale(1.05);
+}
+
+/*addisnal feature*/
+/*hiding feature*/
+.hide .navbar ,
+.navbar.hide{
+    transform: translate(0,100%);
+}\n===== src/page/Home.module.css =====\n
+.Home{
+    width: 100%;
+    height: 100vh;
+    color: white;
+}
+.list{
+    padding: 20px 0;
+}
+.list .heading{
+    text-align: center;
+    width: 100%;
+    padding: 10px 0;
+    color: var(--grey);
+
+}
+
+.item {
+    max-width: 100%;
+    box-sizing: border-box;
+    border-radius: 5px;
+    display: flex;
+    align-items: center;
+    padding: 10px;
+    margin: 5px 8px;
+    transition: background 0.2s ease, box-shadow 0.2s ease;
+}
+.item.invalid{
+    opacity: .5;
+}
+
+.item:hover,
+.active {
+    background-color: rgba(255, 255, 255, 0.042);
+    box-shadow: 0 0 10px -5px black;
+}
+
+/* left thumbnail */
+.side {
+    aspect-ratio: 1 / 1;
+    height: 50px;
+    border-radius: 5px;
+    padding: 5px;
+}
+
+.side img {
+    width: 100%;
+    height: 100%;
+    border-radius: 5px;
+    object-fit: cover;
+}
+
+/* header row */
+.list .header {
+    padding: 10px;
+    display: flex;
+    align-items: center;
+    width: 100%;
+    min-width: 0;
+    justify-content: center;
+}
+
+/* info block */
+.info {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    min-width: 0;
+}
+
+/* text */
+.title {
+    font-weight: 600;
+}
+
+.desc {
+    color: var(--grey);
+}
+
+/* active state (scoped) */
+.active .title {
+    color: var(--green);
+}
+
+/* options */
+.options {
+    display: flex;
+    align-items: center;
+}
+
+/* icon */
+.icon {
+    width: 20px;
+    height: 20px;
+    fill: var(--color);
+}
+
+.AddBtn{
+    border:1px dashed var(--grey);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    flex-direction: column;
+    margin-top: 12px;
+}
+.AddBtn .content svg{
+    width: 20px;
+    height: 20px;
+}
+.AddBtn .bottomText{
+    font-size: 10px;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+.idPopOut{
+    width: 100%;
+    height: 100%;
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    color: white;
+    --color:white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 20;
+}
+.idPopOut .backdrop{
+    width: 100%;
+    height: 100%;
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: rgba(0, 0, 0, 0.81);
+    color: white;
+    --color:white;
+    z-index: 10;
+    transition: 0.5s;
+}
+
+.popout{
+    width: 80%;
+    object-fit: contain;
+    background-color: black;
+    border-radius: 20px;
+    padding: 20px;
+    box-sizing: border-box;
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    transform: translate(-50%,-50%);
+    box-shadow: 0 0 10px -2px var(--black);
+    transition: 0.5s;
+    z-index: 11;
+}
+.popout .header{
+    font-size: 18px;
+    font-weight: 800;
+    text-transform: capitalize;
+    margin-top:10px;
+}
+.popout .description{
+    font-size: 12px;
+    margin-top: 5px;
+    color: var(--grey);
+}
+input#key{
+    margin: 10px;
+    width: 100%;
+    padding: 10px;
+    box-sizing: border-box;
+    border-radius: 10px;
+    background-color: var(--black);
+    color: white;
+    outline: none;
+    border: 1px solid black;
+    font-size: 16px;
+}
+\n===== src/page/footer/footer.js =====\n
+import React from "react"
+
+
+import styles from "./footer.module.css"
+export default React.memo(function Footer(){
+    return (<footer className={styles.footer}>
+        <div className={styles.container}>
+            “Work in progress — things might break”
+            <br/>
+            v0.0.2 • Still improving
+            <p>
+            Just building things I’d actually use.
+            <br/>
+            Built by TryAngles
+        </p>
+        </div>
+        
+    </footer>)
+})\n===== src/page/footer/footer.module.css =====\n
+.footer{
+    width: 100%;
+    display: flex;
+    justify-content: center;
+    background: linear-gradient(transparent 0%,rgba(0, 0, 0, 0.544) 40%);
+    padding: 20px;
+    padding-bottom: 70px;
+    box-sizing: border-box;
+}
+.container{
+    width: 100%;
+    text-align: center;
+}
+p{
+    padding: 20px;
+    text-align: center;
+}\n===== src/page/Playlist/Songlist.js =====\n
+import React from "react";
+import { usePlayerCtx } from "../../core/PlayerProvider"
+import SongListStyles from "./SongList.module.css"
+
+export default React.memo(function SongList({ songs, playlist }) {
+    const player = usePlayerCtx();
+    const isActive = (index)=>player.current?.path == playlist.path && player.current.songUrl == songs[index].songUrl;
+
+    const onClick = (index) => {
+        const isPlaying = isActive(index) && player.isPlaying;
+        const isLoading = isActive(index) && player.isLoading;
+        if (isLoading) return;
+        if (isActive(index)) player.toggle()
+        else player.load(songs, playlist, index);
+    }
+    return (
+        <div className={SongListStyles.list}>
+            {songs.map((song, index) => (
+
+                <SongCard
+                    key={song.songUrl}
+                    song={song}
+                    onClick={()=>onClick(index)}
+                    isActive={isActive(index)}
+                />
+            ))}
+        </div>
+    )
+})
+
+function SongCard({ song, onClick, isActive }) {
+
+    return (
+        <div className={`${SongListStyles.item} ${isActive ? SongListStyles.active : ""}`}
+            onClick={onClick}>
+            <div className={SongListStyles.side}>
+                <img src={song.path + song.thumbnail} />
+            </div>
+            <div className={SongListStyles.header}>
+                <div className={SongListStyles.info}>
+                    <div className={`${SongListStyles.title} ${SongListStyles.textOverflow}`}>
+                        {song.title}
+                    </div>
+                    <div className={`${SongListStyles.desc} ${SongListStyles.textOverflow}`}>
+                        {song.description}
+                    </div>
+                </div>
+                <div className={SongListStyles.options}>
+                    <svg role="img" className={SongListStyles.icon} viewBox="0 0 24 24">
+                        <path d="M10.5 4.5a1.5 1.5 0 1 0 3 0 1.5 1.5 0 0 0-3 0m0 15a1.5 1.5 0 1 0 3 0 1.5 1.5 0 0 0-3 0m0-7.5a1.5 1.5 0 1 0 3 0 1.5 1.5 0 0 0-3 0"></path>
+                    </svg>
+                </div>
+            </div>
+        </div>
+    )
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+// export default React.memo(function List(prop) {
+//     console.log("Rendering List")
+//     /** @type {Song[]}*/
+//     const list = prop.list;
+
+//     /** @type {PlayerState} */
+//     const playstate = prop.playstate;
+
+//     return (
+//         <div className={styles.list}>
+//             {list.map((song, index) => (
+//                 <Card
+//                     key={index}
+//                     song={song}
+//                     index={index}
+//                     playstate={playstate}
+//                     list={list}
+//                 />
+//             ))}
+//         </div>
+//     );
+// })
+// /**
+//  * @param {{list:Song[],index:int,playstate:PlayerState,song:Song}} prop
+// */
+// function Card({ list, index, playstate, song }) {
+//     const currentSong = usePlayerValue(playstate.song);
+//     const isActive = currentSong?.songUrl === song.songUrl;
+
+//     return (
+//         <div
+//             className={`${styles.item} ${isActive ? styles.active : ""}`}
+//             onClick={() => {
+//                 if (isActive) playstate.toggle();
+//                 else playstate.loadQueue(list, index);
+//             }}
+//         >
+//             <div className={styles.side}>
+//                 <img src={song.thumbnail} />
+//             </div>
+
+//             <div className={styles.header}>
+//                 <div className={styles.info}>
+//                     <div className={`${styles.title} ${styles.textOverflow}`}>
+//                         {song.title}
+//                     </div>
+//                     <div className={`${styles.desc} ${styles.textOverflow}`}>
+//                         {song.description}
+//                     </div>
+//                 </div>
+
+//                 <div className={styles.options}>
+//                     <svg role="img" className={styles.icon} viewBox="0 0 24 24">
+//                         <path d="M10.5 4.5a1.5 1.5 0 1 0 3 0 1.5 1.5 0 0 0-3 0m0 15a1.5 1.5 0 1 0 3 0 1.5 1.5 0 0 0-3 0m0-7.5a1.5 1.5 0 1 0 3 0 1.5 1.5 0 0 0-3 0"></path>
+//                     </svg>
+//                 </div>
+//             </div>
+//         </div>
+//     );
+// }\n===== src/page/Playlist/SongList.module.css =====\n
+.list {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    color: white;
+    max-width: 100%;
+    box-sizing: border-box;
+}
+
+/* item */
+.item {
+    max-width: 100%;
+    box-sizing: border-box;
+    border-radius: 5px;
+    display: flex;
+    align-items: center;
+    padding: 10px;
+    margin: 0 8px;
+    transition: background 0.2s ease, box-shadow 0.2s ease;
+}
+
+.item:hover,
+.active {
+    background-color: rgba(255, 255, 255, 0.042);
+    box-shadow: 0 0 10px -5px black;
+}
+
+/* left thumbnail */
+.side {
+    aspect-ratio: 1 / 1;
+    height: 50px;
+    border-radius: 5px;
+    padding: 5px;
+}
+
+.side img {
+    width: 100%;
+    height: 100%;
+    border-radius: 5px;
+    object-fit: cover;
+}
+
+/* header row */
+.header {
+    padding: 10px;
+    display: flex;
+    align-items: center;
+    width: 100%;
+    min-width: 0;
+    justify-content: space-between;
+}
+
+/* info block */
+.info {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    min-width: 0;
+}
+
+/* text */
+.title {
+    font-weight: 600;
+}
+
+.desc {
+    color: var(--grey);
+}
+
+/* active state (scoped) */
+.active .title {
+    color: var(--green);
+}
+
+/* options */
+.options {
+    display: flex;
+    align-items: center;
+}
+
+/* icon */
+.icon {
+    width: 20px;
+    height: 20px;
+    fill: var(--color);
+}
+
+/* utility */
+.textOverflow {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}\n===== src/App.js =====\n
+import React from "react";
+import { Route, Routes } from "react-router-dom";
+
+import "./App.css"
+
+import Home from "./page/Home"
+import PlayListPage from "./page/Playlist";
+import { PlayerProvider } from "./core/PlayerProvider";
+import { PlaylistProvider } from "./core/PlaylistProvider";
+
+
+import Player from "./page/Player/Player";
+import Navbar from "./page/navbar/navbar";
+import Footer from "./page/footer/footer";
+import AboutMe from "./page/aboutMe/aboutme";
+import NotFound from "./page/others/404";
+
+function App() {
+  return (
+    <AppLayout>
+      <Routes>
+        <Route path="/" element={<Home />} />
+        <Route path="/playlist" element={<PlayListPage />} />
+        <Route path="/aboutme" element={<AboutMe />} />
+        <Route path="*" element={<NotFound />} />
+      </Routes>
+    </AppLayout>
+  )
+}
+
+function AppLayout({ children }) {
+  return (
+    <div className="app no-copy">
+      <PlaylistProvider>
+        <PlayerProvider>
+          <div className="content">
+            <div className="MainBody">
+              {children}
+            </div>
+          <Footer />
+          </div>
+          <Player />
+        </PlayerProvider>
+      </PlaylistProvider>
+      <Navbar />
+    </div>
+  )
+}\n===== src/core/PlaylistProvider.js =====\n
+import React, { createContext, useContext } from "react";
+import { usePlaylists } from "./usePlaylists";
+
+const PlaylistContext = createContext(null);
+
+export function PlaylistProvider({ children }) {
+    const store = usePlaylists();
+    return (
+        <PlaylistContext.Provider value={store}>
+            {children}
+        </PlaylistContext.Provider>
+    );
+}
+
+export function usePlaylistCtx() {
+    return useContext(PlaylistContext);
+}\n===== src/core/PlayerProvider.js =====\n
+import { createContext, useContext } from "react";
+import { usePlayer } from "./usePlayer";
+
+const PlayerContext = createContext();
+
+export function PlayerProvider({ children }) {
+    const player = usePlayer();
+    return (
+        <PlayerContext.Provider value={player}>
+            {children}
+        </PlayerContext.Provider>
+    );
+}
+
+export function usePlayerCtx() {
+    return useContext(PlayerContext);
+}\n===== src/core/db.js =====\n
+// DB.js
+
+export class DB {
+  constructor(dbName = "playerDB", storeName = "keyval", version = 1) {
+    this.dbName = dbName;
+    this.storeName = storeName;
+    this.version = version;
+    this.db = null;
+  }
+
+  async init() {
+    if (this.db) return this.db;
+
+    this.db = await new Promise((resolve, reject) => {
+      const request = indexedDB.open(this.dbName, this.version);
+
+      request.onupgradeneeded = () => {
+        const db = request.result;
+        if (!db.objectStoreNames.contains(this.storeName)) {
+          db.createObjectStore(this.storeName);
+        }
+      };
+
+      request.onsuccess = () => resolve(request.result);
+      request.onerror = () => reject(request.error);
+    });
+
+    return this.db;
+  }
+
+  async set(key, value) {
+    const db = await this.init();
+
+    return new Promise((resolve, reject) => {
+      const tx = db.transaction(this.storeName, "readwrite");
+      const store = tx.objectStore(this.storeName);
+
+      const req = store.put(value, key);
+
+      req.onsuccess = () => resolve(true);
+      req.onerror = () => reject(req.error);
+    });
+  }
+
+  async get(key) {
+    const db = await this.init();
+
+    return new Promise((resolve, reject) => {
+      const tx = db.transaction(this.storeName, "readonly");
+      const store = tx.objectStore(this.storeName);
+
+      const req = store.get(key);
+
+      req.onsuccess = () => resolve(req.result);
+      req.onerror = () => reject(req.error);
+    });
+  }
+
+  async delete(key) {
+    const db = await this.init();
+
+    return new Promise((resolve, reject) => {
+      const tx = db.transaction(this.storeName, "readwrite");
+      const store = tx.objectStore(this.storeName);
+
+      const req = store.delete(key);
+
+      req.onsuccess = () => resolve(true);
+      req.onerror = () => reject(req.error);
+    });
+  }
+
+  async clear() {
+    const db = await this.init();
+
+    return new Promise((resolve, reject) => {
+      const tx = db.transaction(this.storeName, "readwrite");
+      const store = tx.objectStore(this.storeName);
+
+      const req = store.clear();
+
+      req.onsuccess = () => resolve(true);
+      req.onerror = () => reject(req.error);
+    });
+  }
+}\n===== src/core/usePlaylists.js =====\n
+import { useCallback, useEffect, useRef, useState } from "react";
+import { DB } from "./db";
+import { _DBName, _StoreName, _DBVersion, _PlaylistKey } from "../const";
+
+import { decodeID, encodeID } from "../services/PlaylistIDServices";
+
+export function usePlaylists() {
+    const [playlists, setPlaylists] = useState([]);
+    const [ready, setReady] = useState(false);
+
+    const dbRef = useRef(null);
+    const isLoaded = useRef(false);
+
+    const fetchPlaylist = useCallback(_fetchPlaylist, [])
+    const isValidPlaylist = useCallback(_isValidPlaylist, [])
+    const fetchVarify = useCallback(_fetchVarify, [])
+
+
+    if (!dbRef.current) {
+        dbRef.current = new DB(_DBName, _StoreName, _DBVersion);
+    }
+
+    const _DB = dbRef.current;
+
+    // Load from DB
+    useEffect(() => {
+        (async () => {
+            const data = await _DB.get(_PlaylistKey);
+            if (Array.isArray(data)) setPlaylists(data);
+            isLoaded.current = true;
+            setReady(true);
+        })();
+    }, []);
+
+    useEffect(() => {
+        if (!ready) return;
+
+        playlists.forEach(async (playlist, idx) => {
+            const isvalid = await fetchVarify(playlist.id);
+
+            setPlaylists(prev => {
+                const copy = [...prev];
+                copy[idx] = { ...copy[idx], isvalid };
+                return copy;
+            });
+        });
+
+    }, [ready]);
+
+    // Sync to DB
+    useEffect(() => {
+        if (!isLoaded.current) return;
+
+        _DB.set(_PlaylistKey, playlists);
+    }, [playlists]);
+
+
+    // Add playlist
+    const addPlaylist = useCallback((playlist) => {
+        if (!isValidPlaylist(playlist)) {
+            console.error("Invalid playlist rejected:", playlist);
+            return;
+        }
+
+        const error = validatePlaylist(playlist);
+        if (error) {
+            console.error("Playlist rejected:", error, playlist);
+            return;
+        }
+
+        setPlaylists(prev => {
+            if (prev.some(p => p.id === playlist.id)) return prev;
+            return [...prev, playlist];
+        });
+    }, [isValidPlaylist]);
+
+    // Remove playlist
+    const removePlaylist = useCallback((id) => {
+        setPlaylists(prev => prev.filter(p => p.id !== id));
+    }, []);
+
+    // Check existence
+    const hasPlaylist = useCallback((id) => {
+        return playlists.some(p => p.id === id);
+    }, [playlists]);
+
+
+    return {
+        playlists,
+        addPlaylist,
+        removePlaylist,
+        hasPlaylist,
+        fetchPlaylist,
+        ready
+    };
+}
+
+async function _fetchVarify(id) {
+    if (!id || typeof id !== "string") return false;
+    try {
+        const rawPath = decodeID(id);
+        const base = normalizeBase(rawPath);
+        if (!base) return false;
+        const indexURL = resolveURL(base, "index.json");
+        const data = await safeFetchJSON(indexURL, {
+            maxSize: 1024,
+            timeout: 5000
+        });
+        console.log(data, !data?.isKey || !data?.config)
+        if (!data?.isKey || !data?.config) return false;
+        return true;
+
+    } catch (e) {
+        console.error(e)
+        return false;
+    }
+}
+
+function validatePlaylist(playlist) {
+    if (!playlist) return "No playlist";
+    if (typeof playlist.id !== "string") return "Invalid id";
+    if (!playlist.path.startsWith("http")) return "Invalid path";
+    return null;
+}
+
+
+function _isValidPlaylist(playlist) {
+    if (!playlist || typeof playlist !== "object") return false;
+
+    if (typeof playlist.id !== "string" || playlist.id.length === 0) return false;
+    if (typeof playlist.path !== "string" || !playlist.path.startsWith("http")) return false;
+
+    if (typeof playlist.title !== "string") return false;
+    if (typeof playlist.description !== "string") return false;
+
+    if (typeof playlist.thumbnail !== "string") return false;
+    if (typeof playlist.songsUrl !== "string") return false;
+
+    return true;
+}
+
+
+async function _fetchPlaylist(id) {
+    if (!id || typeof id !== "string") return null;
+
+    try {
+        const rawPath = decodeID(id);
+        const base = normalizeBase(rawPath);
+
+        if (!base) return null;
+
+        const indexURL = resolveURL(base, "index.json");
+
+        const data = await safeFetchJSON(indexURL, {
+            maxSize: 1024,
+            timeout: 5000
+        });
+
+        if (!data?.isKey || !data?.config) return null;
+
+        const configURL = resolveURL(base, data.config);
+        if (!configURL) return null;
+
+        const configRes = await fetch(configURL);
+        if (!configRes.ok) return null;
+
+        const config = await configRes.json();
+
+        return {
+            id: encodeID(base),
+            path: base,
+            title: config.title || "",
+            description: config.description || "",
+            thumbnail: resolveURL(base, config.thumbnail || "") || "",
+            songsUrl: resolveURL(base, config.songsUrl || "") || "",
+            isvalid: true
+        };
+
+    } catch (e) {
+        console.log("invalid playlist", e);
+        return null;
+    }
+}
+
+
+async function safeFetchJSON(url, { maxSize = 1024, timeout = 3000 } = {}) {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), timeout);
+
+    try {
+        const res = await fetch(url, { signal: controller.signal });
+
+        // ❗ 1. Check status
+        if (!res.ok) {
+            throw new Error("HTTP error: " + res.status);
+        }
+
+        // ❗ 2. Check content type
+        const type = res.headers.get("content-type") || "";
+        if (!type.includes("application/json")) {
+            throw new Error("Not JSON (probably HTML page)");
+        }
+
+        // ❗ 3. Check size (header)
+        const length = res.headers.get("content-length");
+        if (length && Number(length) > maxSize) {
+            throw new Error("File too large");
+        }
+
+        const text = await res.text();
+
+        // ❗ 4. Extra safety: detect HTML manually
+        if (text.trim().startsWith("<")) {
+            throw new Error("Received HTML instead of JSON");
+        }
+
+        if (text.length > maxSize) {
+            throw new Error("File too large");
+        }
+
+        return JSON.parse(text);
+
+    } catch (err) {
+        if (err.name === "AbortError") {
+            throw new Error("Request timeout");
+        }
+        throw err;
+    } finally {
+        clearTimeout(timer);
+    }
+}
+
+
+function normalizeBase(path) {
+    try {
+        // already absolute (http/https)
+        if (/^https?:\/\//i.test(path)) {
+            return path.endsWith("/") ? path : path + "/";
+        }
+
+        // root-relative (/abcplaylist/)
+        if (path.startsWith("/")) {
+            return new URL(path, window.location.origin).href;
+        }
+
+        // relative (abcplaylist/)
+        return new URL(path, window.location.href).href;
+
+    } catch {
+        return null;
+    }
+}
+
+
+function resolveURL(base, relative) {
+    try {
+        return new URL(relative, base).href;
+    } catch {
+        return null;
+    }
+}\n===== src/core/usePlayer.js =====\n
+// usePlayer.js
+import { useState, useRef, useEffect, useCallback } from "react";
+import { APP_NAME, LastPlayList_Key, STORAGE_KEY } from "../const";
+import { encodeID } from "../services/PlaylistIDServices";
+import { usePlaylistCtx } from "./PlaylistProvider";
+
+export function usePlayer() {
+    const audioRef = useRef(null);
+    const nextRef = useRef(null);
+    if (!audioRef.current) {
+        audioRef.current = new Audio();
+    }
+
+    if (!nextRef.current) {
+        nextRef.current = new Audio();
+    }
+
+    const PlaylistMetaRef = useRef(null);
+
+    const [current, setCurrent] = useState(null);
+    const [queue, setQueue] = useState([]);
+    const [index, setIndex] = useState(-1);
+    const [isPlaying, setIsPlaying] = useState(false);
+    const [isLoop, setIsLoop] = useState(false);
+    const [isShuffle, setIsShuffle] = useState(false);
+    const [isLoading, setIsLoading] = useState(false);
+
+    const prevIndexRef = useRef(-1);
+    const nextIndexRef = useRef(-1);
+    const shouldPlayRef = useRef(false);
+
+    const playlist = usePlaylistCtx();
+
+    const setSource = useCallback((audioRef, song) => {
+        audioRef.current.src = song ? song.path + song.songUrl : "";
+        audioRef.current.preload = "auto"
+    }, [])
+
+    const reset = useCallback(() => {
+        setCurrent(null)
+        setQueue([])
+        setIndex(-1)
+        setIsPlaying(false)
+        setIsLoop(false)
+        setIsShuffle(false)
+        setIsLoading(false)
+        audioRef.current.pause()
+        setSource(audioRef, "")
+
+        setSource(nextRef, "")
+        nextIndexRef.current = prevIndexRef.current = -1;
+
+        localStorage.removeItem(LastPlayList_Key)
+        localStorage.removeItem(STORAGE_KEY);
+        shouldPlayRef.current = false;
+    }, [setSource])
+
+    const play = useCallback(() => {
+        shouldPlayRef.current = true;
+
+        audioRef.current.play()
+            .then(() => setIsPlaying(true))
+            .catch(() => setIsPlaying(false));
+    }, []);
+
+    const pause = useCallback(() => {
+        shouldPlayRef.current = false;
+
+        audioRef.current.pause();
+        setIsPlaying(false);
+    }, []);
+
+    const seek = useCallback((time) => {
+        if (audioRef.current) {
+            audioRef.current.currentTime = time;
+        }
+    }, [])
+
+    const load = useCallback((list, Playlist = null, start = 0) => {
+        PlaylistMetaRef.current = Playlist;
+        if (!list?.length) return;
+        setQueue(list);
+        const safeIndex = Math.min(start, list.length - 1);
+        setIndex(safeIndex)
+        setCurrent(list[safeIndex])
+        setSource(audioRef, list[safeIndex])
+        seek(0);
+        play()
+    }, [seek,setSource]);
+
+    const next = useCallback(() => {
+        if (nextIndexRef.current >= 0) {
+            setSource(audioRef,queue[nextIndexRef.current]);
+            setIndex(nextIndexRef.current);
+            setCurrent(queue[nextIndexRef.current]);
+        }
+        seek(0)
+        if (shouldPlayRef.current) play();
+    }, [seek,queue,play,setSource]);
+
+    const prev = useCallback(() => {
+        if (prevIndexRef.current >= 0) {
+            setSource(audioRef,queue[prevIndexRef.current]);
+            setIndex(prevIndexRef.current);
+            setCurrent(queue[prevIndexRef.current]);
+        }
+        seek(0)
+        if (shouldPlayRef.current) play();
+    }, [seek,queue,play,setSource]);
+
+    const toggle = useCallback(() => {
+        if (isPlaying) {
+            pause();
+        } else {
+            play();
+        }
+    }, [isPlaying, play, pause]);
+
+
+    //index update
+    useEffect(() => {
+        if (queue.length === 0) return;
+
+        let nextIndex = (index + 1) % queue.length;
+        let prevIndex = (index - 1 + queue.length) % queue.length;
+
+        if (isLoop) {
+            prevIndex = -1;
+            nextIndex = -1;
+        }
+
+        if (isShuffle) {
+            let a = Math.floor(Math.random() * queue.length);
+            if (a !== index) nextIndex = a % queue.length;
+        }
+
+        if (nextIndex !== nextIndexRef.current) {
+            const nextSong = queue[nextIndex];
+            setSource(nextRef, nextSong)
+            nextIndexRef.current = nextIndex
+        }
+
+        if (prevIndex !== prevIndexRef.current) {
+            prevIndexRef.current = prevIndex
+        }
+
+    }, [isLoop, isShuffle, index, queue,setSource])
+
+
+
+    //load player
+    useEffect(() => {
+        try {
+            const str = localStorage.getItem(STORAGE_KEY);
+            if (!str) return;
+            const saved = JSON.parse(str);
+
+            if (!saved) return;
+
+            setQueue(saved.queue || []);
+            setIndex(saved.index ?? -1);
+            setIsLoop(saved.isLoop || false);
+            setIsShuffle(saved.isShuffle || false);
+
+            if (saved.queue && saved.index >= 0) {
+                const song = saved.queue[saved.index];
+                setCurrent(song);
+                setSource(audioRef, song)
+                // restore time
+                if (saved.currentTime) {
+                    audioRef.current.currentTime = saved.currentTime;
+                }
+            }
+
+        } catch (e) {
+            console.error("Failed to load player state", e);
+        }
+    }, [setSource]);
+
+    //update player
+    useEffect(() => {
+        const data = {
+            queue,
+            index,
+            isLoop,
+            isShuffle,
+            currentTime: audioRef.current.currentTime
+        };
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+        localStorage.setItem(LastPlayList_Key, encodeID(current?.path))
+
+    }, [queue, index, isLoop, isShuffle, isPlaying, current]);
+
+
+
+    //resolve play when user want
+    useEffect(() => {
+        if (!current) return;
+
+        if (!shouldPlayRef.current) return;
+
+        audioRef.current.play()
+            .then(() => setIsPlaying(true))
+            .catch(() => setIsPlaying(false));
+
+    }, [current]);
+
+    //auto next
+    useEffect(() => {
+        const audio = audioRef.current;
+        const handleEnd = () => {
+            next()
+        };
+        audio.addEventListener("ended", handleEnd);
+        return () => {
+            audio.removeEventListener("ended", handleEnd);
+        };
+    }, [next]);
+
+    //checking songs in existing playlist
+    useEffect(() => {
+        if (!playlist.ready || !current) return;
+
+        const id = encodeID(current.path);
+        const exists = playlist.playlists.some(p => p.id === id);
+
+        console.log("exist check", exists, id, "sdf",current.path)
+
+        if (!exists) reset();
+    }, [current, playlist.ready, playlist.playlists, reset]);
+
+
+    //title update
+    useEffect(() => {
+        if (current) {
+            document.title = `${isPlaying ? "▶" : "⏸"} ${current.title} • ${APP_NAME}`;
+        } else {
+            document.title = APP_NAME;
+        }
+    }, [current, isPlaying]);
+
+    //hooking with audio
+    useEffect(() => {
+        const audio = audioRef.current;
+
+        const loading = () => setIsLoading(true);
+        const canPlay = () => setIsLoading(false);
+
+        audio.addEventListener("waiting", loading);
+        audio.addEventListener("playing", canPlay);
+
+        return () => {
+            audio.removeEventListener("waiting", loading);
+            audio.removeEventListener("playing", canPlay);
+        };
+    }, [index]);
+
+
+
+    return {
+        PlaylistMetaRef,
+        index,
+        current,
+        isPlaying,
+        isActive: current ? true : false,
+        isNext: (nextIndexRef.current >= 0),
+        isPrev: (prevIndexRef.current >= 0),
+        audioRef,
+
+        play,
+        pause,
+        toggle,
+        load,
+        next,
+        prev,
+        seek,
+
+        isLoop,
+        setIsLoop,
+
+        isShuffle,
+        setIsShuffle,
+
+        isLoading,
+
+        reset
+    };
+}\n===== src/App.css =====\n
+*{
+  margin: 0;
+  padding: 0;
+}
+
+body,
+#root{
+  --grey:rgb(179, 179, 179);
+  --black:rgb(32, 32, 32);
+  --color:var(--grey);
+  --green:#1ed760;
+
+  width: 100vw;
+  height: 100vh;
+  height:100dvh;
+
+  background-color: var(--black) ;
+  padding-top: env(safe-area-inset-top);
+  padding-bottom: env(safe-area-inset-bottom);
+
+}
+
+.app{
+  
+  aspect-ratio: 9 / 16;
+  box-shadow:  0 0 10px 0 black;
+  position: fixed;
+  bottom: 0;
+  left: 50%;
+  transform: translate(-50%,0);
+  height: 100vh;
+  height:100dvh;
+  overflow: hidden;
+  background-color: rgb(19, 19, 19);
+  padding-top: env(safe-area-inset-top);
+  padding-bottom: env(safe-area-inset-bottom);
+  color: white;
+  
+}
+@media (max-width:600px) {
+  .app{
+    width: 100%;
+    max-width: none;
+    border-radius: 0;
+    height: 100vh;
+    height:100dvh;
+    max-height: none;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    right: 0;
+    transform: none;
+  }
+}
+
+.content{
+    width: 100%;
+    height: 100vh;
+    overflow: auto;
+}
+.MainBody{
+  min-height: 100dvh;
+  min-height: 100vh;
+}
+.icon{
+    fill: var(--color);
+    width: 24px;
+    height: 24px;
+    padding: 5px;
+}
+
+.dot::before{
+    content: "•";
+    margin: 0 4px;
+}
+.pt1{
+  padding-top: 5px;
+}
+
+.pt2{
+  padding-top: 10px;
+}
+.icon.green{
+  --color:var(--green) !important;
+}
+
+.text-overflow{
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.content::-webkit-scrollbar{
+  display: none;
+}
+
+.no-copy {
+  -webkit-user-select: none; /* Chrome, Safari */
+  -moz-user-select: none;    /* Firefox */
+  -ms-user-select: none;     /* IE/Edge */
+  user-select: none;         /* Standard */
+}\n===== src/index.js =====\n
+import React from 'react';
+import ReactDOM from 'react-dom/client';
+import './index.css';
+import App from './App';
+import reportWebVitals from './reportWebVitals';
+import { BrowserRouter } from 'react-router-dom';
+
+const root = ReactDOM.createRoot(document.getElementById('root'));
+root.render(
+  <React.StrictMode>
+    <BrowserRouter>
+      <App />
+    </BrowserRouter>
+  </React.StrictMode>
+);
+
+// If you want to start measuring performance in your app, pass a function
+// to log results (for example: reportWebVitals(console.log))
+// or send to an analytics endpoint. Learn more: https://bit.ly/CRA-vitals
+function analyzeMetric(metric) {
+  const { name, value } = metric;
+
+  let rating = "";
+  let hint = "";
+
+  switch (name) {
+    case "LCP":
+      if (value < 2500) {
+        rating = "GOOD";
+      } else if (value < 4000) {
+        rating = "NEEDS IMPROVEMENT";
+      } else {
+        rating = "BAD";
+      }
+      hint = "Main content load speed (focus on images, bundle size)";
+      break;
+
+    case "FID":
+      if (value < 100) {
+        rating = "GOOD";
+      } else if (value < 300) {
+        rating = "NEEDS IMPROVEMENT";
+      } else {
+        rating = "BAD";
+      }
+      hint = "Interactivity delay (JS blocking issue)";
+      break;
+
+    case "CLS":
+      if (value < 0.1) {
+        rating = "GOOD";
+      } else if (value < 0.25) {
+        rating = "NEEDS IMPROVEMENT";
+      } else {
+        rating = "BAD";
+      }
+      hint = "Layout shifting (UI jumping issue)";
+      break;
+
+    case "FCP":
+      if (value < 1800) {
+        rating = "GOOD";
+      } else if (value < 3000) {
+        rating = "NEEDS IMPROVEMENT";
+      } else {
+        rating = "BAD";
+      }
+      hint = "First paint speed";
+      break;
+
+    case "TTFB":
+      if (value < 800) {
+        rating = "GOOD";
+      } else if (value < 1800) {
+        rating = "NEEDS IMPROVEMENT";
+      } else {
+        rating = "BAD";
+      }
+      hint = "Server response time";
+      break;
+
+    default:
+      rating = "UNKNOWN";
+  }
+
+  console.warn(
+    `%c${name}: ${value} → ${rating}`,
+    `color: ${rating === "GOOD"
+      ? "green"
+      : rating === "NEEDS IMPROVEMENT"
+        ? "orange"
+        : "red"
+    }; font-weight: bold;`
+  );
+
+  console.warn("👉", hint);
+}
+reportWebVitals(analyzeMetric);
+\n===== src/const.js =====\n
+export const APP_NAME = "FeedPlayer"
+
+export const _PlaylistKey = "PlaylistList";
+export const _DBName = "FeedPlayer";
+export const _StoreName = "Appstate";
+export const _DBVersion = 1;
+
+export const STORAGE_KEY = "player_state_v1";
+export const LastPlayList_Key = "LastPlaylist";
+
+export const NO_IMAGE_URL = "/logo512.png"
+
+export const ABOUT_ME_IMAGE = "/profile.jpg"\n===== src/icons.js =====\n
+export function DeleteIcon({ styles }) {
+    return (
+        <svg width="16" height="16" fill="currentColor" className={`icon ${styles?.icon}`} viewBox="0 0 16 16">
+            <path d="M6.5 1h3a.5.5 0 0 1 .5.5v1H6v-1a.5.5 0 0 1 .5-.5M11 2.5v-1A1.5 1.5 0 0 0 9.5 0h-3A1.5 1.5 0 0 0 5 1.5v1H1.5a.5.5 0 0 0 0 1h.538l.853 10.66A2 2 0 0 0 4.885 16h6.23a2 2 0 0 0 1.994-1.84l.853-10.66h.538a.5.5 0 0 0 0-1zm1.958 1-.846 10.58a1 1 0 0 1-.997.92h-6.23a1 1 0 0 1-.997-.92L3.042 3.5zm-7.487 1a.5.5 0 0 1 .528.47l.5 8.5a.5.5 0 0 1-.998.06L5 5.03a.5.5 0 0 1 .47-.53Zm5.058 0a.5.5 0 0 1 .47.53l-.5 8.5a.5.5 0 1 1-.998-.06l.5-8.5a.5.5 0 0 1 .528-.47M8 4.5a.5.5 0 0 1 .5.5v8.5a.5.5 0 0 1-1 0V5a.5.5 0 0 1 .5-.5" />
+        </svg>
+    )
+}
+
+export function PlayListIcon({ styles }) {
+    return (
+        <svg role="img" aria-hidden="true" className={`icon ${styles?.icon}`} viewBox="0 0 24 24"><path d="M14.5 2.134a1 1 0 0 1 1 0l6 3.464a1 1 0 0 1 .5.866V21a1 1 0 0 1-1 1h-6a1 1 0 0 1-1-1V3a1 1 0 0 1 .5-.866M16 4.732V20h4V7.041zM3 22a1 1 0 0 1-1-1V3a1 1 0 0 1 2 0v18a1 1 0 0 1-1 1m6 0a1 1 0 0 1-1-1V3a1 1 0 0 1 2 0v18a1 1 0 0 1-1 1"></path></svg>
+    )
+}
+
+export function HomeIcon({ styles }) {
+    return (
+        <svg role="img" aria-hidden="true" className={`icon ${styles?.icon}`} viewBox="0 0 24 24">
+            <path d="M12.5 3.247a1 1 0 0 0-1 0L4 7.577V20h4.5v-6a1 1 0 0 1 1-1h5a1 1 0 0 1 1 1v6H20V7.577zm-2-1.732a3 3 0 0 1 3 0l7.5 4.33a2 2 0 0 1 1 1.732V21a1 1 0 0 1-1 1h-6.5a1 1 0 0 1-1-1v-6h-3v6a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1V7.577a2 2 0 0 1 1-1.732z"></path>
+        </svg>
+    )
+}
+
+export function NextIcon({ styles }) {
+    return (
+        <svg role="img" className={`icon ${styles?.icon}`} viewBox="0 0 24 24">
+            <path d="M17.7 3a.7.7 0 0 0-.7.7v6.805L5.05 3.606A.7.7 0 0 0 4 4.212v15.576a.7.7 0 0 0 1.05.606L17 13.495V20.3a.7.7 0 0 0 .7.7h1.6a.7.7 0 0 0 .7-.7V3.7a.7.7 0 0 0-.7-.7z" />
+        </svg>
+    )
+}
+
+
+export function PreviousIcon({ styles }) {
+    return (
+        <svg role="img" className={`icon ${styles?.icon}`} viewBox="0 0 24 24">
+            <path d="M6.3 3a.7.7 0 0 1 .7.7v6.805l11.95-6.899a.7.7 0 0 1 1.05.606v15.576a.7.7 0 0 1-1.05.606L7 13.495V20.3a.7.7 0 0 1-.7.7H4.7a.7.7 0 0 1-.7-.7V3.7a.7.7 0 0 1 .7-.7z" />
+        </svg>
+    )
+}
+
+export function LoopIcon({ styles }) {
+    return (
+        <svg role="img" className={`icon ${styles?.icon}`} viewBox="0 0 24 24">
+            <path d="M6 2a5 5 0 0 0-5 5v8a5 5 0 0 0 5 5h1v-2H6a3 3 0 0 1-3-3V7a3 3 0 0 1 3-3h12a3 3 0 0 1 3 3v8a3 3 0 0 1-3 3h-4.798l1.298-1.298a1 1 0 1 0-1.414-1.414L9.373 19l3.713 3.712a1 1 0 0 0 1.414-1.414L13.202 20H18a5 5 0 0 0 5-5V7a5 5 0 0 0-5-5z"></path>
+        </svg>
+    )
+}
+export function SuffleIcon({ styles }) {
+    return (
+        <svg role="img" className={`icon ${styles?.icon}`} viewBox="0 0 24 24">
+            <path d="M18.788 3.702a1 1 0 0 1 1.414-1.414L23.914 6l-3.712 3.712a1 1 0 1 1-1.414-1.414L20.086 7h-1.518a5 5 0 0 0-3.826 1.78l-7.346 8.73a7 7 0 0 1-5.356 2.494H1v-2h1.04a5 5 0 0 0 3.826-1.781l7.345-8.73A7 7 0 0 1 18.569 5h1.518l-1.298-1.298z"></path>
+            <path d="M18.788 14.289a1 1 0 0 0 0 1.414L20.086 17h-1.518a5 5 0 0 1-3.826-1.78l-1.403-1.668-1.306 1.554 1.178 1.4A7 7 0 0 0 18.568 19h1.518l-1.298 1.298a1 1 0 1 0 1.414 1.414L23.914 18l-3.712-3.713a1 1 0 0 0-1.414 0zM7.396 6.49l2.023 2.404-1.307 1.553-2.246-2.67a5 5 0 0 0-3.826-1.78H1v-2h1.04A7 7 0 0 1 7.396 6.49"></path>
+        </svg>
+    )
+}
+
+
+
+export function ShareIcon() {
+    return <svg role="img" aria-hidden="true" className="icon" viewBox="0 0 24 24">
+        <path d="M18.5 4a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3M15 5.5a3.5 3.5 0 1 1 1.006 2.455L9 12l7.006 4.045a3.5 3.5 0 1 1-.938 1.768l-6.67-3.85a3.5 3.5 0 1 1 0-3.924l6.67-3.852A3.5 3.5 0 0 1 15 5.5m-9.5 5a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3m13 6.5a1.5 1.5 0 1 0-.001 3 1.5 1.5 0 0 0 .001-3"></path>
+    </svg>
+}
+export function LikeIcon() {
+    return <svg role="img" aria-hidden="true" className="icon" viewBox="0 0 24 24"><path d="M5.21 1.57a6.76 6.76 0 0 1 6.708 1.545.124.124 0 0 0 .165 0 6.74 6.74 0 0 1 5.715-1.78l.004.001a6.8 6.8 0 0 1 5.571 5.376v.003a6.69 6.69 0 0 1-1.49 5.655l-7.954 9.48a2.518 2.518 0 0 1-3.857 0L2.12 12.37A6.68 6.68 0 0 1 .627 6.714 6.76 6.76 0 0 1 5.21 1.57m3.12 1.803a4.757 4.757 0 0 0-5.74 3.725l-.001.002a4.68 4.68 0 0 0 1.049 3.969l.009.01 7.958 9.485a.518.518 0 0 0 .79 0l7.968-9.495a4.69 4.69 0 0 0 1.049-3.965 4.8 4.8 0 0 0-3.931-3.794 4.74 4.74 0 0 0-4.023 1.256l-.008.008a2.123 2.123 0 0 1-2.9 0l-.007-.007a4.76 4.76 0 0 0-2.214-1.194z"></path></svg>
+}
+export function DetailIcon() {
+    return (
+        <svg role="img" aria-hidden="true" className="icon" viewBox="0 0 24 24">
+            <path d="M10.5 4.5a1.5 1.5 0 1 0 3 0 1.5 1.5 0 0 0-3 0m0 15a1.5 1.5 0 1 0 3 0 1.5 1.5 0 0 0-3 0m0-7.5a1.5 1.5 0 1 0 3 0 1.5 1.5 0 0 0-3 0"></path>
+        </svg>
+    )
+}
+export function BackIcon({ styles }) {
+    return (
+        <svg role="img" className={`icon ${styles && styles?.icon}`} viewBox="0 0 24 24">
+            <path d="M2.793 8.043a1 1 0 0 1 1.414 0L12 15.836l7.793-7.793a1 1 0 1 1 1.414 1.414L12 18.664 2.793 9.457a1 1 0 0 1 0-1.414"></path>
+        </svg>
+    )
+}\n===== src/services/SongServices.js =====\n
+export async function fetchSongs(url) {
+    try {
+        const res = await fetch(url);
+        const data = await res.json();
+
+        return (data.song_list || []);
+    } catch (e) {
+        console.log("songs error", e);
+        return [];
+    }
+}\n===== src/services/PlaylistIDServices.js =====\n
+export function encodeID(raw) {
+    if (!raw) return "";
+    return btoa(raw)
+      .replace(/\+/g, "-")
+      .replace(/\//g, "_")
+      .replace(/=+$/, "");
+
+    // return raw;
+}
+
+export function decodeID(encoded) {
+    if (!encoded) return "";
+    encoded = encoded
+      .replace(/-/g, "+")
+      .replace(/_/g, "/");
+
+    while (encoded.length % 4) {
+      encoded += "=";
+    }
+
+    return atob(encoded);
+
+    // return encoded
+}\n===== src/index.css =====\n
+body {
+  margin: 0;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
+    sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+code {
+  font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
+    monospace;
+}
+\n===== src/logo.svg =====\n
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 841.9 595.3"><g fill="#61DAFB"><path d="M666.3 296.5c0-32.5-40.7-63.3-103.1-82.4 14.4-63.6 8-114.2-20.2-130.4-6.5-3.8-14.1-5.6-22.4-5.6v22.3c4.6 0 8.3.9 11.4 2.6 13.6 7.8 19.5 37.5 14.9 75.7-1.1 9.4-2.9 19.3-5.1 29.4-19.6-4.8-41-8.5-63.5-10.9-13.5-18.5-27.5-35.3-41.6-50 32.6-30.3 63.2-46.9 84-46.9V78c-27.5 0-63.5 19.6-99.9 53.6-36.4-33.8-72.4-53.2-99.9-53.2v22.3c20.7 0 51.4 16.5 84 46.6-14 14.7-28 31.4-41.3 49.9-22.6 2.4-44 6.1-63.6 11-2.3-10-4-19.7-5.2-29-4.7-38.2 1.1-67.9 14.6-75.8 3-1.8 6.9-2.6 11.5-2.6V78.5c-8.4 0-16 1.8-22.6 5.6-28.1 16.2-34.4 66.7-19.9 130.1-62.2 19.2-102.7 49.9-102.7 82.3 0 32.5 40.7 63.3 103.1 82.4-14.4 63.6-8 114.2 20.2 130.4 6.5 3.8 14.1 5.6 22.5 5.6 27.5 0 63.5-19.6 99.9-53.6 36.4 33.8 72.4 53.2 99.9 53.2 8.4 0 16-1.8 22.6-5.6 28.1-16.2 34.4-66.7 19.9-130.1 62-19.1 102.5-49.9 102.5-82.3zm-130.2-66.7c-3.7 12.9-8.3 26.2-13.5 39.5-4.1-8-8.4-16-13.1-24-4.6-8-9.5-15.8-14.4-23.4 14.2 2.1 27.9 4.7 41 7.9zm-45.8 106.5c-7.8 13.5-15.8 26.3-24.1 38.2-14.9 1.3-30 2-45.2 2-15.1 0-30.2-.7-45-1.9-8.3-11.9-16.4-24.6-24.2-38-7.6-13.1-14.5-26.4-20.8-39.8 6.2-13.4 13.2-26.8 20.7-39.9 7.8-13.5 15.8-26.3 24.1-38.2 14.9-1.3 30-2 45.2-2 15.1 0 30.2.7 45 1.9 8.3 11.9 16.4 24.6 24.2 38 7.6 13.1 14.5 26.4 20.8 39.8-6.3 13.4-13.2 26.8-20.7 39.9zm32.3-13c5.4 13.4 10 26.8 13.8 39.8-13.1 3.2-26.9 5.9-41.2 8 4.9-7.7 9.8-15.6 14.4-23.7 4.6-8 8.9-16.1 13-24.1zM421.2 430c-9.3-9.6-18.6-20.3-27.8-32 9 .4 18.2.7 27.5.7 9.4 0 18.7-.2 27.8-.7-9 11.7-18.3 22.4-27.5 32zm-74.4-58.9c-14.2-2.1-27.9-4.7-41-7.9 3.7-12.9 8.3-26.2 13.5-39.5 4.1 8 8.4 16 13.1 24 4.7 8 9.5 15.8 14.4 23.4zM420.7 163c9.3 9.6 18.6 20.3 27.8 32-9-.4-18.2-.7-27.5-.7-9.4 0-18.7.2-27.8.7 9-11.7 18.3-22.4 27.5-32zm-74 58.9c-4.9 7.7-9.8 15.6-14.4 23.7-4.6 8-8.9 16-13 24-5.4-13.4-10-26.8-13.8-39.8 13.1-3.1 26.9-5.8 41.2-7.9zm-90.5 125.2c-35.4-15.1-58.3-34.9-58.3-50.6 0-15.7 22.9-35.6 58.3-50.6 8.6-3.7 18-7 27.7-10.1 5.7 19.6 13.2 40 22.5 60.9-9.2 20.8-16.6 41.1-22.2 60.6-9.9-3.1-19.3-6.5-28-10.2zM310 490c-13.6-7.8-19.5-37.5-14.9-75.7 1.1-9.4 2.9-19.3 5.1-29.4 19.6 4.8 41 8.5 63.5 10.9 13.5 18.5 27.5 35.3 41.6 50-32.6 30.3-63.2 46.9-84 46.9-4.5-.1-8.3-1-11.3-2.7zm237.2-76.2c4.7 38.2-1.1 67.9-14.6 75.8-3 1.8-6.9 2.6-11.5 2.6-20.7 0-51.4-16.5-84-46.6 14-14.7 28-31.4 41.3-49.9 22.6-2.4 44-6.1 63.6-11 2.3 10.1 4.1 19.8 5.2 29.1zm38.5-66.7c-8.6 3.7-18 7-27.7 10.1-5.7-19.6-13.2-40-22.5-60.9 9.2-20.8 16.6-41.1 22.2-60.6 9.9 3.1 19.3 6.5 28.1 10.2 35.4 15.1 58.3 34.9 58.3 50.6-.1 15.7-23 35.6-58.4 50.6zM320.8 78.4z"/><circle cx="420.9" cy="296.5" r="45.7"/><path d="M520.5 78.1z"/></g></svg>

@@ -15,7 +15,8 @@ import { NO_IMAGE_URL } from "../../const";
 
 export default function Player() {
     const player = usePlayerCtx();
-    const [isVisible, setIsVisible] = useState(false);
+    const isVisible = player.isVisible;
+    const setIsVisible = player.setIsVisible;
     const [coverArtMinimize, setCoverArtMinimize] = useState(false);
     const [bg, setBg] = useState(null)
     const song = player.current;

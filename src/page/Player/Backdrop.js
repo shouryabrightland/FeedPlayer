@@ -1,20 +1,26 @@
-import React, { useRef, useEffect, useMemo, useState } from "react";
+import React, { useRef, useEffect, useMemo, useState, useCallback } from "react";
 import styles from "./player.module.css";
 
 function PlayerBackdrop({ player, isVisible, minimize, bgcolor }) {
     const containerRef = useRef(null);
-    const videoRefs = useRef({});
+
+    // ✅ use Map (cleaner than object)
+    const videoRefs = useRef(new Map());
+
     const itemHeightRef = useRef(window.innerHeight);
     const scrollTimeout = useRef(null);
-    const isUserActiveRef = useRef(false);
+
     const idleTimeoutRef = useRef(null);
+    const isUserActiveRef = useRef(false);
 
     const [index, setIndex] = useState(0);
+    const [failedRealIndexes, setFailedRealIndexes] = useState(new Set());
+    const [fullscreen, setFullScreen] = useState(false);
 
     const isPlaying = player.isPlaying;
-    const mediaRaw = player.current?.media || [];
+    const mediaRaw = useMemo(()=>player.current?.media || [],[player.current]);
 
-    // ✅ shuffle once per song
+    // 🔀 shuffle once per song
     const media = useMemo(() => {
         const arr = [...mediaRaw];
         for (let i = arr.length - 1; i > 0; i--) {
@@ -24,7 +30,12 @@ function PlayerBackdrop({ player, isVisible, minimize, bgcolor }) {
         return arr;
     }, [mediaRaw]);
 
-    // ✅ resize
+    // ✅ reset failures ONLY when song changes
+    useEffect(() => {
+        setFailedRealIndexes(new Set());
+    }, [player.current]);
+
+    // 📏 resize
     useEffect(() => {
         const onResize = () => {
             itemHeightRef.current = window.innerHeight;
@@ -33,7 +44,7 @@ function PlayerBackdrop({ player, isVisible, minimize, bgcolor }) {
         return () => window.removeEventListener("resize", onResize);
     }, []);
 
-    // ✅ scroll → index (controlled)
+    // 📜 scroll → index
     useEffect(() => {
         if (!isVisible) return;
 
@@ -46,9 +57,8 @@ function PlayerBackdrop({ player, isVisible, minimize, bgcolor }) {
             scrollTimeout.current = setTimeout(() => {
                 const h = itemHeightRef.current;
                 const newIndex = Math.round(container.scrollTop / h);
-
-                setIndex(newIndex); // 🔥 ONLY ON SCROLL END
-            }, 120); // sweet spot (100–150ms)
+                setIndex(newIndex);
+            }, 10);
         };
 
         container.addEventListener("scroll", onScroll);
@@ -59,7 +69,7 @@ function PlayerBackdrop({ player, isVisible, minimize, bgcolor }) {
         };
     }, [isVisible]);
 
-    // ✅ initial infinite position
+    // 🎯 initial scroll position
     useEffect(() => {
         const container = containerRef.current;
         if (!container || !media.length) return;
@@ -71,28 +81,39 @@ function PlayerBackdrop({ player, isVisible, minimize, bgcolor }) {
         setIndex(startIndex);
     }, [media]);
 
-    // ✅ virtualization (ONLY 5 ITEMS)
+    // 🧠 visible items (self-healing)
     const visibleItems = useMemo(() => {
-        if (media.length == 0) return [];
-        const buffer = 2;
-        const items = [];
+        if (!media.length) return [];
 
-        for (let i = index - buffer; i <= index + buffer; i++) {
+        if (failedRealIndexes.size >= media.length) {
+            return [{ type: "fallback", virtualIndex: index }];
+        }
+
+        const items = [];
+        let i = index - 2;
+
+        while (items.length < 5) {
             const realIndex =
                 ((i % media.length) + media.length) % media.length;
 
-            items.push({
-                ...media[realIndex],
-                virtualIndex: i
-            });
-        }
-        return items;
-    }, [index, media]);
+            if (!failedRealIndexes.has(realIndex)) {
+                items.push({
+                    ...media[realIndex],
+                    virtualIndex: i,
+                    realIndex
+                });
+            }
 
-    // ✅ VIDEO CONTROL (FIXED)
+            i++;
+            if (i > index + media.length + 10) break;
+        }
+
+        return items;
+    }, [index, media, failedRealIndexes]);
+
+    // 🎥 video control (FIXED, no memory leak)
     useEffect(() => {
-        Object.entries(videoRefs.current).forEach(([key, video]) => {
-            const vIndex = Number(key);
+        videoRefs.current.forEach((video, vIndex) => {
             const distance = Math.abs(vIndex - index);
 
             if (!video) return;
@@ -114,6 +135,18 @@ function PlayerBackdrop({ player, isVisible, minimize, bgcolor }) {
         });
     }, [index, isPlaying, isVisible]);
 
+    // 🧹 cleanup unused refs (CRITICAL FIX)
+    useEffect(() => {
+        const validKeys = new Set(visibleItems.map(i => i.virtualIndex));
+
+        videoRefs.current.forEach((_, key) => {
+            if (!validKeys.has(key)) {
+                videoRefs.current.delete(key);
+            }
+        });
+    }, [visibleItems]);
+
+    // 🧍 user activity
     useEffect(() => {
         if (!isVisible) return;
 
@@ -126,7 +159,7 @@ function PlayerBackdrop({ player, isVisible, minimize, bgcolor }) {
             clearTimeout(idleTimeoutRef.current);
             idleTimeoutRef.current = setTimeout(() => {
                 isUserActiveRef.current = false;
-            }, 20000); // 🔥 cooldown (tune this)
+            }, 20000);
         };
 
         container.addEventListener("pointerdown", markActive);
@@ -140,6 +173,7 @@ function PlayerBackdrop({ player, isVisible, minimize, bgcolor }) {
         };
     }, [isVisible]);
 
+    // 🔄 auto-scroll
     useEffect(() => {
         if (!isVisible || !isPlaying || !media.length) return;
 
@@ -149,16 +183,13 @@ function PlayerBackdrop({ player, isVisible, minimize, bgcolor }) {
         let timer;
 
         const loop = () => {
-            // ❌ user interacting → skip
             if (isUserActiveRef.current) {
                 timer = setTimeout(loop, 1000);
                 return;
             }
 
             const h = itemHeightRef.current;
-
-            const currentIndex = Math.round(container.scrollTop / h);
-            const next = currentIndex + 1;
+            const next = Math.round(container.scrollTop / h) + 1;
 
             container.scrollTo({
                 top: next * h,
@@ -173,11 +204,20 @@ function PlayerBackdrop({ player, isVisible, minimize, bgcolor }) {
         return () => clearTimeout(timer);
     }, [isVisible, isPlaying, media]);
 
-    const resolveSrc = (src) => {
+    const resolveSrc = useCallback((src) => {
         if (!src) return "";
         if (src.startsWith("http")) return src;
         return (player.current?.path || "") + src;
-    };
+    }, [player.current?.path]);
+
+    const markFailed = useCallback((realIndex) => {
+        setFailedRealIndexes(prev => {
+            if (prev.has(realIndex)) return prev;
+            const next = new Set(prev);
+            next.add(realIndex);
+            return next;
+        });
+    }, []);
 
     return (
         <div
@@ -191,51 +231,118 @@ function PlayerBackdrop({ player, isVisible, minimize, bgcolor }) {
                     position: "relative"
                 }}
             >
-                {visibleItems.map((item) => {
-                    const top = item.virtualIndex * itemHeightRef.current;
-
-                    const distance = Math.abs(item.virtualIndex - index);
-
-                    // 🎯 effects (cheap + smooth)
-                    const scale = Math.max(0.85, 1 - distance * 0.08);
-                    const opacity = Math.max(0.3, 1 - distance * 0.25);
-
-                    return (
-                        <div
-                            key={item.virtualIndex}
-                            className={styles.feedItem}
-                            style={{
-                                transform: `translateY(${top}px) scale(${scale})`,
-                                opacity,
-                                transition: "transform 0.25s ease-out, opacity 0.25s ease-out"
-                            }}
-                        >
-                            {item.type === "video" ? (
-                                <video
-                                    ref={(el) => {
-                                        if (el) videoRefs.current[item.virtualIndex] = el;
-                                        else delete videoRefs.current[item.virtualIndex];
-                                    }}
-                                    src={resolveSrc(item.src)}
-                                    muted
-                                    loop
-                                    playsInline
-                                    preload="metadata"
-                                />
-                            ) : (
-                                <img src={resolveSrc(item.src)} alt="" loading="lazy" />
-                            )}
-                        </div>
-                    );
-                })}
+                {visibleItems.map((item) => (
+                    <FeedItem
+                        key={item.virtualIndex}
+                        info={item}
+                        index={index}
+                        itemHeight={itemHeightRef.current}
+                        videoRefs={videoRefs}
+                        resolveSrc={resolveSrc}
+                        markFailed={markFailed}
+                        fullscreen={fullscreen}
+                        setFullScreen={setFullScreen}
+                    />
+                ))}
             </div>
         </div>
     );
 }
 
-// function PlayerBackdrop({ player, isVisible, minimize, bgcolor }) {
-//     console.log("r")
-// }
+const FeedItem = React.memo(function FeedItem({
+    info,
+    index,
+    itemHeight,
+    videoRefs,
+    resolveSrc,
+    markFailed,
+    fullscreen,
+    setFullScreen
+}) {
+    const [isTall, setIsTall] = useState(null);
+    const [hide, setHide] = useState(false);
+    const toggle = useCallback(() => {
+        setHide(true);
+        const to = setTimeout(()=>{
+            setFullScreen((p)=>!p)
+            setTimeout(()=>{
+                setHide(false)
+            },30)
+        },110)
+    },[])
+
+    if (info.type === "fallback") {
+        return <div className={styles.feedItem}>No media available</div>;
+    }
+
+    const top = info.virtualIndex * itemHeight;
+    const distance = Math.abs(info.virtualIndex - index);
+
+    const scale = Math.max(0.85, 1 - distance * 0.02);
+    const opacity = Math.max(0.3, 1 - distance * 0.25);
+
+    const isReady = isTall !== null && !hide;
+
+
+    return (
+        <div
+            className={styles.feedItem}
+            style={{
+                transform: `translateY(${top}px) scale(${scale})`,
+                opacity,
+                transition: "transform 0.25s ease-out, opacity 0.25s ease-out"
+            }}
+        >
+            {info.type === "video" ? (
+                <video
+                    ref={(el) => {
+                        if (el) {
+                            videoRefs.current.set(info.virtualIndex, el);
+                        }
+                    }}
+                    className={`${`
+                        ${styles.mediaBase}
+                        ${isTall ? styles.tallMedia : styles.normalMedia}
+                        ${fullscreen ? styles.fullscreen : ""}
+                        ${!isReady ? styles.loading : styles.ready}
+                    `}`}
+                    src={resolveSrc(info.src)}
+                    muted
+                    loop
+                    playsInline
+                    preload="metadata"
+                    onLoadedMetadata={(e) => {
+                        const v = e.target;
+                        const tall = v.videoHeight > v.videoWidth;
+                        setIsTall(prev => prev === tall ? prev : tall);
+                    }}
+                    onError={() => markFailed(info.realIndex)}
+                    onClick={() => toggle()}
+                />
+            ) : (
+                <img
+                    src={resolveSrc(info.src)}
+                    className={`${`
+                        ${styles.mediaBase}
+                        ${isTall ? styles.tallMedia : styles.normalMedia}
+                        ${fullscreen ? styles.fullscreen : ""}
+                        ${!isReady ? styles.loading : styles.ready}
+                    `}`}
+                    alt=""
+                    loading="lazy"
+                    onLoad={(e) => {
+                        const img = e.target;
+                        const tall = img.naturalHeight > img.naturalWidth;
+                        setIsTall(prev => prev === tall ? prev : tall);
+                    }}
+                    onError={() => markFailed(info.realIndex)}
+                    onClick={() => toggle()}
+                />
+            )}
+        </div>
+    );
+});
+
 
 
 export default React.memo(PlayerBackdrop);

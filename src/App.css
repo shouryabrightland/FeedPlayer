@@ -58,13 +58,16 @@ body,
     height: 100vh;
     overflow: auto;
 }
+.MainBody{
+  min-height: 100dvh;
+  min-height: 100vh;
+}
 .icon{
     fill: var(--color);
     width: 24px;
     height: 24px;
     padding: 5px;
 }
-
 
 .dot::before{
     content: "•";
@@ -88,4 +91,11 @@ body,
 }
 .content::-webkit-scrollbar{
   display: none;
+}
+
+.no-copy {
+  -webkit-user-select: none; /* Chrome, Safari */
+  -moz-user-select: none;    /* Firefox */
+  -ms-user-select: none;     /* IE/Edge */
+  user-select: none;         /* Standard */
 }

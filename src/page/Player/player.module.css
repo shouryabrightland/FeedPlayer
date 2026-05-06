@@ -1,5 +1,5 @@
-.green .icon{
-  --color:var(--green) !important;
+.green .icon {
+    --color: var(--green) !important;
 }
 
 .outerPlayer {
@@ -32,7 +32,7 @@
     padding-bottom: 20px;
 }
 
-.player .main.enableFeed{
+.player .main.enableFeed {
     pointer-events: none;
 }
 
@@ -73,11 +73,13 @@
     transition: width 0.2s ease;
     opacity: 1;
 }
-.coverArt.minimize .thumbnail{
+
+.coverArt.minimize .thumbnail {
     align-items: end;
     justify-content: start;
 }
-.coverArt.minimize .thumbnail> *{
+
+.coverArt.minimize .thumbnail>* {
     border-radius: 10px;
     box-shadow: 0 0 20px -2px black;
     position: absolute;
@@ -88,11 +90,10 @@
 }
 
 .coverArt .thumbnail {
-    overflow: hidden;
-    height: 100%;
     width: 100%;
+    height: 100%;
     position: relative;
-    object-fit: contain;
+    overflow: hidden;
 }
 
 .coverArt .thumbnail>* {
@@ -104,7 +105,7 @@
     width: 60%;
     transform: translate(-50%, -50%);
     transition: 0.4s ease;
-    aspect-ratio: 1 / 1;
+    /* aspect-ratio: 1 / 1; */
 }
 
 .meta {
@@ -156,8 +157,9 @@
     z-index: 2;
     position: absolute;
 }
-.progressBar .buffer{
-        width: 16%;
+
+.progressBar .buffer {
+    width: 16%;
     background-color: #ffffff3d;
     border-radius: 2px;
     height: 100%;
@@ -223,7 +225,7 @@
     bottom: 70px;
     box-sizing: border-box;
     transition: 0.3s;
-    --bg:rgba(0, 0, 0, 0.568);
+    --bg: rgba(0, 0, 0, 0.568);
 }
 
 .outerPlayerCard.min {
@@ -269,9 +271,10 @@
     justify-content: center;
     aspect-ratio: 1 / 1;
     height: 100%;
-   
+
 }
-.icon{
+
+.icon {
     filter: drop-shadow(0px 0px 12px black);
     -webkit-filter: drop-shadow(0px 0px 12px black);
 }
@@ -294,7 +297,7 @@
     height: 100%;
 }
 
-.cardBar{
+.cardBar {
     position: absolute;
     height: 2.5px;
     /* max-width: 100%; */
@@ -304,7 +307,8 @@
     box-sizing: border-box;
     background-color: #ffffff85;
 }
-.cardBar .progress{
+
+.cardBar .progress {
     height: 100%;
     background-color: white;
 }
@@ -344,7 +348,8 @@
     scroll-snap-type: y mandatory;
     overscroll-behavior: contain;
 }
-.backdropFeed::after{
+
+.backdropFeed::after {
     content: "";
     position: fixed;
     top: 0;
@@ -353,7 +358,8 @@
     pointer-events: none;
     transition: 0.5s;
 }
-.backdropFeed.blur::after{
+
+.backdropFeed.blur::after {
     backdrop-filter: blur(8px);
     pointer-events: unset;
 }
@@ -363,7 +369,80 @@
     display: none;
 }
 
+/* wrapper stays same */
 .feedItem {
+    width: 100%;
+    height: 100vh;
+    position: absolute;
+    overflow: hidden;
+    box-sizing: border-box;
+    /* display: flex;
+    align-items: center;
+    justify-content: center; */
+    will-change: transform;
+    scroll-snap-align: start;
+    scroll-snap-stop: always;
+
+
+
+    /* position: absolute;
+    width: 100%;
+    height: 100%;
+    overflow: hidden; */
+}
+
+/*NORMAL (center crop)*/
+.normalMedia {
+    max-width: calc(100% - 40px);
+    max-height: 100%;
+    border-radius: 20px;
+    box-shadow: 0 0 10px 0 black;
+    will-change: transform;
+    position: absolute;
+    object-fit: contain;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -60%)translateZ(0);
+    transition: opacity 0.25s ease;
+}
+
+/* TALL (your custom rule) */
+.tallMedia {
+    max-width: calc(100% - 40px);
+    max-height: calc(100% - 40px);
+    object-fit: contain;
+    border-radius: 20px;
+    box-shadow: 0 0 10px 0 black;
+    will-change: transform;
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%) translateZ(0);
+    transition: opacity 0.1s ease;
+}
+.feedItem .fullscreen{
+    object-fit: cover;
+    position: absolute;
+    top: 0;
+    left: 50%;
+    transform: translateX(-50%) translateZ(0);
+    height: 100% !important;
+    width: 100% !important;
+    border-radius: 0 !important;
+    max-width: 100%;
+    max-height: 100%;
+    transition: opacity 0.1s ease;
+}
+.loading {
+    opacity: 0;
+}
+
+.ready {
+    opacity: 1;
+    transition: opacity 0.1s ease;
+}
+
+/* .feedItem {
     width: 100%;
     height: 100vh;
     position: absolute;
@@ -376,10 +455,10 @@
     will-change: transform;
     scroll-snap-align: start;
     scroll-snap-stop: always;
-}
+} */
 
 /* media fill */
-.feedItem video,
+/* .feedItem video,
 .feedItem img {
     max-width: 100%;
     max-height: 100%;
@@ -388,11 +467,11 @@
     box-shadow: 0 0 10px 0 black;
     will-change: transform;
     transform: translateZ(0);
-}
+} */
 
 /* optional dark overlay for readability */
-.feedItem::after {
+/* .feedItem::after {
     content: "";
     position: absolute;
     inset: 0;
-}
+}  */

@@ -24,6 +24,9 @@
     margin: 5px 8px;
     transition: background 0.2s ease, box-shadow 0.2s ease;
 }
+.item.invalid{
+    opacity: .5;
+}
 
 .item:hover,
 .active {

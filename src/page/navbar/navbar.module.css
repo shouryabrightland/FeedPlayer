@@ -10,6 +10,7 @@
     justify-content: space-around;
     transform: none;
     transition: 0.2s;
+    
 }
 .item{
     --color: rgb(179, 179, 179);

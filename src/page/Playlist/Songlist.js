@@ -10,7 +10,9 @@ export default React.memo(function SongList({ songs, playlist }) {
         const isPlaying = isActive(index) && player.isPlaying;
         const isLoading = isActive(index) && player.isLoading;
         if (isLoading) return;
-        if (isActive(index)) player.toggle()
+        if (isActive(index)) {
+            player.setIsVisible(true)
+        }
         else player.load(songs, playlist, index);
     }
     return (
@@ -34,7 +36,8 @@ function SongCard({ song, onClick, isActive }) {
         <div className={`${SongListStyles.item} ${isActive ? SongListStyles.active : ""}`}
             onClick={onClick}>
             <div className={SongListStyles.side}>
-                <img src={song.path + song.thumbnail} />
+                <img src={song.path + song.thumbnail} 
+                onError={(e) => e.target.src = "/fallback.png"} />
             </div>
             <div className={SongListStyles.header}>
                 <div className={SongListStyles.info}>

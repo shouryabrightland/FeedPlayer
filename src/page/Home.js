@@ -1,17 +1,13 @@
 import React from "react";
-import { useEffect, useState, useRef } from "react";
+import { useState, useCallback, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 
-
-import { fetchPlaylist } from "../services/PlaylistServices";
 import { usePlaylistCtx } from "../core/PlaylistProvider";
 
 import { Header } from "./navbar/Header";
+import { DeleteIcon } from "../icons";
 
 import HomeStyles from "./Home.module.css";
-import { decodeID } from "../services/PlaylistIDServices";
-import { APP_NAME } from "../const";
-import { DeleteIcon } from "../icons";
 
 
 export default function Home() {
@@ -25,21 +21,21 @@ export default function Home() {
 function HomeLayout({ children }) {
     return (
         <div className={HomeStyles.Home}>
-            <Header/>
+            <Header />
             {children}
         </div>
     )
 }
 
-function PlaylistList() {
-    const { playlists, addPlaylist, removePlaylist } = usePlaylistCtx();
+const PlaylistList = React.memo(() => {
+    const { playlists, addPlaylist, removePlaylist, fetchPlaylist } = usePlaylistCtx();
 
     const handleRemovePlaylist = (id) => {
         removePlaylist(id); // ✅ use store
     };
 
     return (
-        <div className={HomeStyles.list}>
+        <div className={`${HomeStyles.list} no-copy`}>
             <div className={HomeStyles.heading}>
                 {playlists.length
                     ? "Select the playlist below"
@@ -54,49 +50,114 @@ function PlaylistList() {
                 />
             ))}
 
-            <PlaylistAdd addPlaylist={addPlaylist} />
+            <PlaylistAdd addPlaylist={addPlaylist} fetchPlaylist={fetchPlaylist} />
         </div>
     );
-}
+})
 
-function PlaylistAdd({ addPlaylist }) {
+function PlaylistAdd({ addPlaylist, fetchPlaylist }) {
     const [pop, set] = useState(false);
     return (<>
         <AddBtn set={set} />
         {
             pop &&
-            <PopOut set={set} addPlaylist={addPlaylist} />
+            <PopOut set={set} addPlaylist={addPlaylist} fetchPlaylist={fetchPlaylist} />
         }
     </>
     )
 }
-function PopOut({ set, addPlaylist }) {
+
+function PopOut({ set, addPlaylist, fetchPlaylist }) {
     const [msg, setMsg] = useState("");
-    const handleChange = async (e) => {
-        const id = e.target.value;
+    const [loading, setLoading] = useState(false);
+
+    const debounceRef = useRef(null);
+    const requestIdRef = useRef(0); // 🔥 prevents race conditions
+
+    const handleChange = useCallback((e) => {
+        const id = e.target.value.trim().replace(/\s/g, "");
+
         setMsg("");
 
-        const playlist = await fetchPlaylist(id);
+        // ❌ clear previous debounce
+        clearTimeout(debounceRef.current);
 
-        if (!playlist) {
-            setMsg("No Playlist Found");
+        // optional: avoid useless calls
+        // optional format check
+        if (!/^[A-Za-z0-9\-_]+$/.test(id)) {
+            setMsg("Invalid ID format");
             return;
         }
 
-        addPlaylist(playlist); // ✅ pass full object
-        set(false);
-    };
+        debounceRef.current = setTimeout(async () => {
+            const currentRequestId = ++requestIdRef.current;
+
+            try {
+                setLoading(true);
+
+                const playlist = await fetchPlaylist(id);
+
+                // ❗ ignore outdated responses
+                if (currentRequestId !== requestIdRef.current) return;
+
+                if (!playlist) {
+                    setMsg("No Playlist Found");
+                    return;
+                }
+
+                addPlaylist(playlist);
+                set(false); // close popup
+
+            } catch (err) {
+                if (currentRequestId !== requestIdRef.current) return;
+
+                setMsg("Something went wrong");
+            } finally {
+                if (currentRequestId === requestIdRef.current) {
+                    setLoading(false);
+                }
+            }
+        }, 400); // 🔥 debounce delay
+
+    }, [fetchPlaylist, addPlaylist, set]);
+
     return (
-        <div className={`${HomeStyles.idPopOut}`}>
-            <div className={HomeStyles.backdrop} onClick={() => set(false)}></div>
+        <div className={HomeStyles.idPopOut}>
+            <div
+                className={HomeStyles.backdrop}
+                onClick={() => set(false)}
+            ></div>
+
             <div className={HomeStyles.popout}>
-                <div className={HomeStyles.header}>Enter your Playlist ID</div>
-                <div className={HomeStyles.description}>(If provided by Owner)</div>
-                <input type="text" id={HomeStyles.key} className={HomeStyles.checking} onChange={handleChange} />
-                <span className={HomeStyles.msgSpan}>{msg}</span>
+                <div className={HomeStyles.header}>
+                    Enter your Playlist ID
+                </div>
+
+                <div className={HomeStyles.description}>
+                    (If provided by Owner)
+                </div>
+
+                <input
+                    type="text"
+                    id={HomeStyles.key}
+                    className={HomeStyles.checking}
+                    onChange={handleChange}
+                />
+
+                {loading && (
+                    <span className={HomeStyles.msgSpan}>
+                        Checking...
+                    </span>
+                )}
+
+                {!loading && msg && (
+                    <span className={HomeStyles.msgSpan}>
+                        {msg}
+                    </span>
+                )}
             </div>
         </div>
-    )
+    );
 }
 function AddBtn({ set }) {
     const handleClick = () => set(true)
@@ -112,8 +173,9 @@ function AddBtn({ set }) {
 function PlaylistCard({ playlist, removePlaylist }) {
     const navigate = useNavigate()
     const openPlaylist = () => navigate(`/playlist?k=${playlist.id}`)
+    console.log(playlist.isvalid, "sdfg")
     return (
-        <div className={`${HomeStyles.item}`}>
+        <div className={`${HomeStyles.item} ${(!playlist.isvalid) ? HomeStyles.invalid : ""}`}>
             <div className={HomeStyles.side}>
                 <img src={playlist.thumbnail} onClick={openPlaylist} />
             </div>
@@ -130,7 +192,7 @@ function PlaylistCard({ playlist, removePlaylist }) {
                     e.stopPropagation();
                     removePlaylist();
                 }}>
-                    <DeleteIcon/>
+                    <DeleteIcon />
                 </div>
             </div>
         </div>

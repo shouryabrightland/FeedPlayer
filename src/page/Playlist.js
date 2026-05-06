@@ -1,12 +1,13 @@
 import React from "react";
-import { useEffect, useRef, useState } from "react";
-import { useNavigate, useSearchParams } from "react-router-dom";
+import { useEffect, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 
+import { LastPlayList_Key } from "../const";
+import { usePlaylistCtx } from "../core/PlaylistProvider.js";
 import { usePlayerCtx } from "../core/PlayerProvider.js";
-import { fetchPlaylist } from "../services/PlaylistServices";
 import { fetchSongs } from "../services/SongServices.js";
 
-import { getAverageColor, PlayBtn } from "../components/sm_components.js";
+import { getAverageColor, PlayBtn, resolveURL } from "../components/sm_components.js";
 import { DetailIcon, LikeIcon, ShareIcon } from "../icons.js";
 
 import SongList from "./Playlist/Songlist.js";
@@ -15,32 +16,29 @@ import PlaylistStyles from "./Playlist.module.css";
 import templateFXStyles from "./templateFX.module.css";
 import LoadingPage from "./others/LoadingPage.js";
 import ErrorPage from "./others/ErrorPage.js";
-import { LastPlayList_Key } from "../const.js";
 import { shareContent } from "../components/shareContent.js";
+import { decodeID, encodeID } from "../services/PlaylistIDServices.js";
 
-import { DB } from "../core/db";
-import { _DBName, _StoreName, _DBVersion, _PlaylistKey } from "../const";
-import { usePlaylistCtx } from "../core/PlaylistProvider.js";
 
 
 export default React.memo(function PlayListPage() {
     const [params] = useSearchParams();
     const id = params.get("k") || localStorage.getItem(LastPlayList_Key);
 
-    const { addPlaylist, hasPlaylist, ready } = usePlaylistCtx();
-
-
-    const navigate = useNavigate();
+    const { addPlaylist, hasPlaylist, ready, fetchPlaylist } = usePlaylistCtx();
 
     const [playlist, setPlaylist] = useState(null);
     const [songs, setSongs] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
 
+
     useEffect(() => {
         if (!id) {
-            setError({title:"No Playlist Selected",
-                message:"Selected Playlist will be Shown Here"});
+            setError({
+                title: "No Playlist Selected",
+                message: "Selected Playlist will be Shown Here"
+            });
             setLoading(false);
             return;
         }
@@ -55,8 +53,17 @@ export default React.memo(function PlayListPage() {
                 if (!active) return;
 
                 if (!data) {
-                    setError({title:"No Playlist Found",
-                        message:"Provide Link is invalid or Playlist is moved"});
+                    setError({
+                        title: "No Playlist Found",
+                        message: "Provide Link is invalid or Playlist is moved"
+                    });
+                    return;
+                }
+
+                const clean = normalizePlaylist(data);
+
+                if (!isValidPlaylist(clean)) {
+                    setError({ title: "Invalid Playlist", message: "Corrupted data" });
                     return;
                 }
 
@@ -73,7 +80,7 @@ export default React.memo(function PlayListPage() {
 
             } catch (e) {
                 if (!active) return;
-                setError({title:"Error",message: "Something Went Wrong"});
+                setError({ title: "Error", message: e });
             } finally {
                 if (active) setLoading(false);
             }
@@ -82,7 +89,7 @@ export default React.memo(function PlayListPage() {
         return () => {
             active = false;
         };
-    }, [id, ready]);
+    }, [id, ready, addPlaylist, fetchPlaylist, hasPlaylist]);
 
     // intentionally excluding hasPlaylist & addPlaylist
     // because they are unstable references
@@ -156,9 +163,12 @@ function PlaylistBtn({ songs, playlist }) {
 
     const onClick = () => {
         if (isLoading) return;
-        if (isPlaying) {
+        if(isActive){
             player.toggle()
-        } else player.load(songs, playlist, 0);
+        }else{
+            player.load(songs, playlist, 0);
+            player.setIsVisible(true)
+        }
     }
     return (
         <div className={PlaylistStyles.outer_btn}>
@@ -221,4 +231,35 @@ function PlaylistLayOut({ children }) {
 
 function templateFX() {
     return <div className={templateFXStyles.loading}>.</div>
+}
+
+
+
+function normalizePlaylist(raw) {
+    const path = decodeID(raw?.id ?? "")
+    return {
+        id: raw?.id ?? null,
+        title: raw?.title ?? "",
+        path: path,
+        songsUrl: raw?.songsUrl ?? "",
+        thumbnail: resolveURL(path, raw?.thumbnail)
+    };
+}
+
+function isValidPlaylist(p) {
+    return (
+        typeof p.id === "string" &&
+        typeof p.songsUrl === "string" &&
+        typeof p.path === "string"
+    );
+}
+
+function createPlaylist(raw) {
+    const normalized = normalizePlaylist(raw);
+
+    if (!isValidPlaylist(normalized)) {
+        throw new Error("Invalid playlist");
+    }
+
+    return Object.freeze(normalized);
 }
