@@ -16,7 +16,7 @@ export default function CardPlayer({isVisible,setVisible, theme, player }) {
             style={{ '--bg': theme }}>
             <div className={PlayerStyles.playerCard}>
                 <div className={PlayerStyles.thumbnail}>
-                    <img src={thumbnailUrl} />
+                    <img src={thumbnailUrl} alt=""/>
                 </div>
                 <div className={PlayerStyles.info} onClick={()=>setVisible(true)}>
                     <div className={PlayerStyles.title}>{song?.title}</div>

@@ -1,22 +1,22 @@
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 import { LoopIcon, NextIcon, PreviousIcon, SuffleIcon } from "../../icons"
-import { getAverageColor, PlayBtn } from "../../components/sm_components";
+import { PlayBtn } from "../../components/sm_components";
 
 import PlayerStyles from "./player.module.css"
 
-export function LoopBtn({active}) {
+export function LoopBtn({ active }) {
     return (
-        <span className={active ? PlayerStyles.green:""}>
-            <LoopIcon styles={PlayerStyles}/>
+        <span className={active ? PlayerStyles.green : ""}>
+            <LoopIcon styles={PlayerStyles} />
         </span>
     )
 }
 
-export function SuffleBtn({active}) {
+export function SuffleBtn({ active }) {
     return (
-        <span className={active? PlayerStyles.green:""}>
-            <SuffleIcon styles={PlayerStyles}/>
+        <span className={active ? PlayerStyles.green : ""}>
+            <SuffleIcon styles={PlayerStyles} />
         </span>
     )
 }
@@ -34,12 +34,12 @@ export function PlayerControl({ player }) {
         setIsShuffle
     } = player;
 
-    const toggleLoop = ()=>setIsLoop(!isLoop)
-    const toggleShuffle = ()=>setIsShuffle(!isShuffle)
+    const toggleLoop = () => setIsLoop(!isLoop)
+    const toggleShuffle = () => setIsShuffle(!isShuffle)
 
     const isLoading = player.isLoading
-    const toggleBtn = ()=>{
-        if(!isLoading) toggle()
+    const toggleBtn = () => {
+        if (!isLoading) toggle()
     }
 
     return (
@@ -54,7 +54,7 @@ export function PlayerControl({ player }) {
                 {/* Previous */}
                 <div className={PlayerStyles.opt} onClick={prev}>
                     <span>
-                        <PreviousIcon styles={PlayerStyles}/>
+                        <PreviousIcon styles={PlayerStyles} />
                     </span>
                 </div>
 
@@ -66,7 +66,7 @@ export function PlayerControl({ player }) {
                 {/* Next */}
                 <div className={PlayerStyles.opt} onClick={next}>
                     <span>
-                        <NextIcon styles={PlayerStyles}/>
+                        <NextIcon styles={PlayerStyles} />
                     </span>
                 </div>
 
@@ -92,9 +92,23 @@ export function ProgressBar({ player }) {
 
     const [time, setTime] = useState({ current: 0, duration: 0 });
     const [dragging, setDragging] = useState(false);
+    const { audioRef, play, isPlaying, pause } = player;
+
+    const handleSeek = useCallback((e)=>{
+        const audio = audioRef.current;
+        if (!audio || !barRef.current) return;
+
+        const rect = barRef.current.getBoundingClientRect();
+        let x = e.clientX - rect.left;
+
+        x = Math.max(0, Math.min(x, rect.width));
+
+        const percent = x / rect.width;
+        audio.currentTime = percent * (audio.duration || 0);
+    }, [audioRef])
 
     useEffect(() => {
-        const audio = player.audioRef.current;
+        const audio = audioRef.current;
         if (!audio) return;
 
         const updateUI = () => {
@@ -161,7 +175,7 @@ export function ProgressBar({ player }) {
             audio.removeEventListener("timeupdate", onTimeUpdate);
             document.removeEventListener("visibilitychange", onVisibility);
         };
-    }, [player.audioRef]);
+    }, [audioRef]);
 
     // 🎯 Drag logic
     useEffect(() => {
@@ -170,7 +184,7 @@ export function ProgressBar({ player }) {
         const move = (e) => handleSeek(e);
         const up = () => {
             setDragging(false);
-            if (wasPlayingRef.current) player.play();
+            if (wasPlayingRef.current) play();
         };
 
         window.addEventListener("pointermove", move);
@@ -180,37 +194,26 @@ export function ProgressBar({ player }) {
             window.removeEventListener("pointermove", move);
             window.removeEventListener("pointerup", up);
         };
-    }, [dragging]);
+    }, [dragging, handleSeek, play]);
 
-    function handlePointerDown(e) {
-        const audio = player.audioRef.current;
+    const handlePointerDown = useCallback((e) => {
+        const audio = audioRef.current;
         if (!audio) return;
 
-        wasPlayingRef.current = player.isPlaying;
+        wasPlayingRef.current = isPlaying;
         setDragging(true);
-        player.pause();
+        pause();
         handleSeek(e);
-    }
+    }, [audioRef, pause, isPlaying,handleSeek])
 
-    function handleSeek(e) {
-        const audio = player.audioRef.current;
-        if (!audio || !barRef.current) return;
+    
 
-        const rect = barRef.current.getBoundingClientRect();
-        let x = e.clientX - rect.left;
-
-        x = Math.max(0, Math.min(x, rect.width));
-
-        const percent = x / rect.width;
-        audio.currentTime = percent * (audio.duration || 0);
-    }
-
-    function format(t) {
+    const format = useCallback((t) => {
         if (!t) return "0:00";
         const m = Math.floor(t / 60);
         const s = Math.floor(t % 60).toString().padStart(2, "0");
         return `${m}:${s}`;
-    }
+    }, [])
 
     return (
         <div className={PlayerStyles.progressBar} ref={barRef} onPointerDown={handlePointerDown}>

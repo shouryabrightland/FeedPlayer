@@ -177,7 +177,7 @@ function PlaylistCard({ playlist, removePlaylist }) {
     return (
         <div className={`${HomeStyles.item} ${(!playlist.isvalid) ? HomeStyles.invalid : ""}`}>
             <div className={HomeStyles.side}>
-                <img src={playlist.thumbnail} onClick={openPlaylist} />
+                <img src={playlist.thumbnail} onClick={openPlaylist} alt={playlist.title} />
             </div>
             <div className={HomeStyles.header} onClick={openPlaylist}>
                 <div className={HomeStyles.info}>

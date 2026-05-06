@@ -88,7 +88,7 @@ export function usePlayer() {
         setSource(audioRef, list[safeIndex])
         seek(0);
         play()
-    }, [seek,setSource]);
+    }, [seek,setSource,play]);
 
     const next = useCallback(() => {
         if (nextIndexRef.current >= 0) {
@@ -129,9 +129,7 @@ export function usePlayer() {
         if (isLoop) {
             prevIndex = -1;
             nextIndex = -1;
-        }
-
-        if (isShuffle) {
+        }else if (isShuffle) {
             let a = Math.floor(Math.random() * queue.length);
             if (a !== index) nextIndex = a % queue.length;
         }

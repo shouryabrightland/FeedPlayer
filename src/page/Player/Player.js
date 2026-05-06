@@ -1,9 +1,9 @@
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState } from "react";
 
 import { BackIcon, DetailIcon, LikeIcon } from "../../icons"
 
 import { usePlayerCtx } from "../../core/PlayerProvider"
-import { getAverageColor, PlayBtn } from "../../components/sm_components";
+import { getAverageColor} from "../../components/sm_components";
 import CardPlayer from "./cardPlayer";
 import PlayerBackdrop from "./Backdrop"
 
@@ -54,7 +54,7 @@ function CoverArt({ song, minimize, setMinimize }) {
     return (
         <div className={`${PlayerStyles.coverArt} ${minimize ? PlayerStyles.minimize : ""}`}>
             <div className={PlayerStyles.thumbnail}>
-                <img src={url} onClick={toggle} />
+                <img src={url} onClick={toggle} alt={""} />
             </div>
         </div>
     )

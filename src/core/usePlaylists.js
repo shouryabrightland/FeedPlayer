@@ -21,13 +21,12 @@ export function usePlaylists() {
         dbRef.current = new DB(_DBName, _StoreName, _DBVersion);
     }
 
-    const _DB = dbRef.current;
 
     // Load from DB
     useEffect(() => {
         (async () => {
             try {
-                const data = await _DB.get(_PlaylistKey);
+                const data = await dbRef.current.get(_PlaylistKey);
                 if (Array.isArray(data)) setPlaylists(data);
             } catch (e) {
                 console.log("db failed", e);
@@ -41,24 +40,27 @@ export function usePlaylists() {
     useEffect(() => {
         if (!ready) return;
 
-        playlists.forEach(async (playlist, idx) => {
-            const isvalid = await fetchVarify(playlist.id);
+        playlists.forEach((playlist, idx) => {
+            fetchVarify(playlist.id).then((isvalid) => {
+                setPlaylists(prev => {
+                    // prevent unnecessary updates
+                    if (!prev[idx] || prev[idx].isvalid === isvalid) return prev;
 
-            setPlaylists(prev => {
-                const copy = [...prev];
-                copy[idx] = { ...copy[idx], isvalid };
-                return copy;
+                    const copy = [...prev];
+                    copy[idx] = { ...copy[idx], isvalid };
+                    return copy;
+                });
             });
         });
 
-    }, [ready]);
+    }, [ready, playlists, fetchVarify]);
 
     // Sync to DB
     useEffect(() => {
         if (!isLoaded.current) return;
 
         try {
-            _DB.set(_PlaylistKey, playlists);
+            dbRef.current.set(_PlaylistKey, playlists);
         } catch (e) {
             console.log("db failed", e);
         }

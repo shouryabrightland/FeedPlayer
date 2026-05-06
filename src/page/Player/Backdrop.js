@@ -18,7 +18,8 @@ function PlayerBackdrop({ player, isVisible, minimize, bgcolor }) {
     const [fullscreen, setFullScreen] = useState(false);
 
     const isPlaying = player.isPlaying;
-    const mediaRaw = useMemo(()=>player.current?.media || [],[player.current]);
+    const { current } = player;
+    const mediaRaw = useMemo(()=>current?.media || [],[current]);
 
     // 🔀 shuffle once per song
     const media = useMemo(() => {
@@ -33,7 +34,7 @@ function PlayerBackdrop({ player, isVisible, minimize, bgcolor }) {
     // ✅ reset failures ONLY when song changes
     useEffect(() => {
         setFailedRealIndexes(new Set());
-    }, [player.current]);
+    }, [current]);
 
     // 📏 resize
     useEffect(() => {
@@ -207,8 +208,8 @@ function PlayerBackdrop({ player, isVisible, minimize, bgcolor }) {
     const resolveSrc = useCallback((src) => {
         if (!src) return "";
         if (src.startsWith("http")) return src;
-        return (player.current?.path || "") + src;
-    }, [player.current?.path]);
+        return (current?.path || "") + src;
+    }, [current?.path]);
 
     const markFailed = useCallback((realIndex) => {
         setFailedRealIndexes(prev => {
@@ -263,13 +264,13 @@ const FeedItem = React.memo(function FeedItem({
     const [hide, setHide] = useState(false);
     const toggle = useCallback(() => {
         setHide(true);
-        const to = setTimeout(()=>{
+        setTimeout(()=>{
             setFullScreen((p)=>!p)
             setTimeout(()=>{
                 setHide(false)
             },30)
         },110)
-    },[])
+    },[setFullScreen])
 
     if (info.type === "fallback") {
         return <div className={styles.feedItem}>No media available</div>;
@@ -279,7 +280,7 @@ const FeedItem = React.memo(function FeedItem({
     const distance = Math.abs(info.virtualIndex - index);
 
     const scale = Math.max(0.85, 1 - distance * 0.02);
-    const opacity = Math.max(0.3, 1 - distance * 0.25);
+    const opacity = Math.max(0.3, 1 - distance * 0.45);
 
     const isReady = isTall !== null && !hide;
 

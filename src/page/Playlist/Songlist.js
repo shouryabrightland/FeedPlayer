@@ -4,10 +4,9 @@ import SongListStyles from "./SongList.module.css"
 
 export default React.memo(function SongList({ songs, playlist }) {
     const player = usePlayerCtx();
-    const isActive = (index)=>player.current?.path == playlist.path && player.current.songUrl == songs[index].songUrl;
+    const isActive = (index)=>player.current?.path === playlist.path && player.current.songUrl === songs[index].songUrl;
 
     const onClick = (index) => {
-        const isPlaying = isActive(index) && player.isPlaying;
         const isLoading = isActive(index) && player.isLoading;
         if (isLoading) return;
         if (isActive(index)) {
@@ -15,7 +14,7 @@ export default React.memo(function SongList({ songs, playlist }) {
         }
         else{
             player.load(songs, playlist, index);
-            if(player.current?.path != playlist.path) player.setIsVisible(true);
+            if(player.current?.path !== playlist.path) player.setIsVisible(true);
         } 
     }
     return (
@@ -27,20 +26,21 @@ export default React.memo(function SongList({ songs, playlist }) {
                     song={song}
                     onClick={()=>onClick(index)}
                     isActive={isActive(index)}
+                    fallbackImgUrl={playlist.thumbnail}
                 />
             ))}
         </div>
     )
 })
 
-function SongCard({ song, onClick, isActive }) {
+function SongCard({ song, onClick, isActive,fallbackImgUrl}) {
 
     return (
         <div className={`${SongListStyles.item} ${isActive ? SongListStyles.active : ""}`}
             onClick={onClick}>
             <div className={SongListStyles.side}>
                 <img src={song.path + song.thumbnail} 
-                onError={(e) => e.target.src = "/fallback.png"} />
+                onError={(e) => e.target.src = fallbackImgUrl} alt="" />
             </div>
             <div className={SongListStyles.header}>
                 <div className={SongListStyles.info}>

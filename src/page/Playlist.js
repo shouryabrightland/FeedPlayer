@@ -17,7 +17,7 @@ import templateFXStyles from "./templateFX.module.css";
 import LoadingPage from "./others/LoadingPage.js";
 import ErrorPage from "./others/ErrorPage.js";
 import { shareContent } from "../components/shareContent.js";
-import { decodeID, encodeID } from "../services/PlaylistIDServices.js";
+import { decodeID} from "../services/PlaylistIDServices.js";
 
 
 
@@ -182,7 +182,7 @@ function PlaylistBtn({ songs, playlist }) {
 function PlaylistThumbnail({ url }) {
     return (
         <div className={PlaylistStyles.thumbnail}>
-            {url && <img src={url} />}
+            {url && <img src={url} alt="" />}
         </div>
     )
 }
@@ -252,14 +252,4 @@ function isValidPlaylist(p) {
         typeof p.songsUrl === "string" &&
         typeof p.path === "string"
     );
-}
-
-function createPlaylist(raw) {
-    const normalized = normalizePlaylist(raw);
-
-    if (!isValidPlaylist(normalized)) {
-        throw new Error("Invalid playlist");
-    }
-
-    return Object.freeze(normalized);
 }

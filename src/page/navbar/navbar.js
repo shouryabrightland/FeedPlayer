@@ -32,7 +32,7 @@ export default function Navbar() {
                 className={`${NavStyles.item} ${isActive("/aboutMe") ? NavStyles.active : ""}`}
                 onClick={() => navigate("/aboutme")}
             >
-                <img className="icon" src={ABOUT_ME_IMAGE} style={{borderRadius:"50%"}}/>
+                <img className="icon" alt="" src={ABOUT_ME_IMAGE} style={{borderRadius:"50%"}}/>
                 About me
             </div>
 
