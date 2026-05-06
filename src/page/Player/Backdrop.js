@@ -301,7 +301,6 @@ const FeedItem = React.memo(function FeedItem({
                         }
                     }}
                     className={`${`
-                        ${styles.mediaBase}
                         ${isTall ? styles.tallMedia : styles.normalMedia}
                         ${fullscreen ? styles.fullscreen : ""}
                         ${!isReady ? styles.loading : styles.ready}
@@ -323,7 +322,6 @@ const FeedItem = React.memo(function FeedItem({
                 <img
                     src={resolveSrc(info.src)}
                     className={`${`
-                        ${styles.mediaBase}
                         ${isTall ? styles.tallMedia : styles.normalMedia}
                         ${fullscreen ? styles.fullscreen : ""}
                         ${!isReady ? styles.loading : styles.ready}

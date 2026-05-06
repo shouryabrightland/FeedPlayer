@@ -13,7 +13,10 @@ export default React.memo(function SongList({ songs, playlist }) {
         if (isActive(index)) {
             player.setIsVisible(true)
         }
-        else player.load(songs, playlist, index);
+        else{
+            player.load(songs, playlist, index);
+            if(player.current?.path != playlist.path) player.setIsVisible(true);
+        } 
     }
     return (
         <div className={SongListStyles.list}>
