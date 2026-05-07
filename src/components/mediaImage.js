@@ -80,7 +80,7 @@ export const MediaImage = React.memo(function MediaImage({
                     width: "100%",
                     height: "100%",
                     objectFit: "cover",
-                    filter: "blur(18px)",
+                    filter: "blur(6px)",
                     transform: "scale(1.1)",
                     opacity: loaded ? 0 : 1,
                     transition: "opacity .25s",

@@ -221,7 +221,10 @@ function PlaylistThumbnail({ base,path }) {
     console.log(base,path,"image resoler")
     return (
         <div className={PlaylistStyles.thumbnail}>
-            {path && <MediaImage src={path} base={base} alt="" />}
+            {path && <MediaImage src={path} base={base} alt="" style={{
+                width:"100%",
+                height: "100%"
+            }} />}
         </div>
     )
 }

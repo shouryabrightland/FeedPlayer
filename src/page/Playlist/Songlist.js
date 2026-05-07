@@ -40,7 +40,7 @@ function SongCard({ song, onClick, isActive,fallbackImgUrl}) {
         <div className={`${SongListStyles.item} ${isActive ? SongListStyles.active : ""}`}
             onClick={onClick}>
             <div className={SongListStyles.side}>
-                <MediaImage base={song.path} src={song.thumbnail} className=".img"  alt="" />
+                <MediaImage base={song.path} src={song.thumbnail} className={SongListStyles.img}  alt="" />
             </div>
             <div className={SongListStyles.header}>
                 <div className={SongListStyles.info}>
