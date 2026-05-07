@@ -7,7 +7,7 @@ import { usePlaylistCtx } from "../core/PlaylistProvider.js";
 import { usePlayerCtx } from "../core/PlayerProvider.js";
 import { fetchSongs } from "../services/SongServices.js";
 
-import { getAverageColor, PlayBtn, resolveURL } from "../components/sm_components.js";
+import { getAverageColor, PlayBtn} from "../components/sm_components.js";
 import { DetailIcon, LikeIcon, ShareIcon } from "../icons.js";
 
 import SongList from "./Playlist/Songlist.js";
@@ -18,6 +18,7 @@ import LoadingPage from "./others/LoadingPage.js";
 import ErrorPage from "./others/ErrorPage.js";
 import { shareContent } from "../components/shareContent.js";
 import { decodeID} from "../services/PlaylistIDServices.js";
+import { getImageURL, MediaImage } from "../components/mediaImage.js";
 
 
 
@@ -98,9 +99,11 @@ export default React.memo(function PlayListPage() {
     if (error) return <ErrorPage title={error.title} message={error.message} />;
     if (!playlist) return <ErrorPage message="Failed to load playlists" />;
 
+    console.log(playlist,"first page")
+
     return (
         <PlaylistLayOut>
-            <FirstPage thumbnailUrl={playlist.thumbnail}>
+            <FirstPage base={playlist.path} path={playlist.thumbnail}>
                 <PlaylistBtn songs={songs} playlist={playlist} />
                 <Info data={playlist} songs={songs} />
             </FirstPage>
@@ -179,15 +182,6 @@ function PlaylistBtn({ songs, playlist }) {
     )
 }
 
-function PlaylistThumbnail({ url }) {
-    return (
-        <div className={PlaylistStyles.thumbnail}>
-            {url && <img src={url} alt="" />}
-        </div>
-    )
-}
-
-
 function Options({ children }) {
     return (
         <div className={PlaylistStyles.options}>
@@ -204,22 +198,34 @@ function Options({ children }) {
     )
 }
 
-function FirstPage({ children, thumbnailUrl }) {
+function FirstPage({ children, base , path }) {
     const [bg, setBg] = useState(null)
+    const thumbnailUrl = getImageURL(base,path,50)
     useEffect(() => {
         if (!thumbnailUrl) return;
         getAverageColor(thumbnailUrl).then((rgb) => {
             setBg(rgb)
         })
     }, [thumbnailUrl])
+    console.log(base,path,"image thumbnail")
     return (
         <div className={`${PlaylistStyles.firstpage} ${bg ? "" : PlaylistStyles.firstpageHidden}`}
             style={{ '--bg': `${bg}` }}>
-            <PlaylistThumbnail url={thumbnailUrl} />
+            <PlaylistThumbnail base={base} path={path} />
             {children}
         </div>
     )
 }
+
+function PlaylistThumbnail({ base,path }) {
+    console.log(base,path,"image resoler")
+    return (
+        <div className={PlaylistStyles.thumbnail}>
+            {path && <MediaImage src={path} base={base} alt="" />}
+        </div>
+    )
+}
+
 
 function PlaylistLayOut({ children }) {
     return (
@@ -242,7 +248,7 @@ function normalizePlaylist(raw) {
         title: raw?.title ?? "",
         path: path,
         songsUrl: raw?.songsUrl ?? "",
-        thumbnail: resolveURL(path, raw?.thumbnail)
+        thumbnail: raw?.thumbnail
     };
 }
 

@@ -1,11 +1,10 @@
 import React, { useRef, useEffect, useMemo, useState, useCallback } from "react";
 import styles from "./player.module.css";
+import { MediaImage } from "../../components/mediaImage";
+import { MediaVideo } from "../../components/mediaVideo";
 
 function PlayerBackdrop({ player, isVisible, minimize, bgcolor }) {
     const containerRef = useRef(null);
-
-    // ✅ use Map (cleaner than object)
-    const videoRefs = useRef(new Map());
 
     const itemHeightRef = useRef(window.innerHeight);
     const scrollTimeout = useRef(null);
@@ -19,7 +18,9 @@ function PlayerBackdrop({ player, isVisible, minimize, bgcolor }) {
 
     const isPlaying = player.isPlaying;
     const { current } = player;
-    const mediaRaw = useMemo(()=>current?.media || [],[current]);
+    const mediaRaw = useMemo(() => current?.media || [], [current]);
+
+    const base = useMemo(()=>current?.path,[current]);
 
     // 🔀 shuffle once per song
     const media = useMemo(() => {
@@ -112,41 +113,6 @@ function PlayerBackdrop({ player, isVisible, minimize, bgcolor }) {
         return items;
     }, [index, media, failedRealIndexes]);
 
-    // 🎥 video control (FIXED, no memory leak)
-    useEffect(() => {
-        videoRefs.current.forEach((video, vIndex) => {
-            const distance = Math.abs(vIndex - index);
-
-            if (!video) return;
-
-            if (!isVisible || !isPlaying) {
-                video.pause();
-                return;
-            }
-
-            if (distance === 0) {
-                video.preload = "auto";
-                video.play().catch(() => { });
-            } else if (distance === 1) {
-                video.preload = "metadata";
-                video.pause();
-            } else {
-                video.pause();
-            }
-        });
-    }, [index, isPlaying, isVisible]);
-
-    // 🧹 cleanup unused refs (CRITICAL FIX)
-    useEffect(() => {
-        const validKeys = new Set(visibleItems.map(i => i.virtualIndex));
-
-        videoRefs.current.forEach((_, key) => {
-            if (!validKeys.has(key)) {
-                videoRefs.current.delete(key);
-            }
-        });
-    }, [visibleItems]);
-
     // 🧍 user activity
     useEffect(() => {
         if (!isVisible) return;
@@ -205,12 +171,6 @@ function PlayerBackdrop({ player, isVisible, minimize, bgcolor }) {
         return () => clearTimeout(timer);
     }, [isVisible, isPlaying, media]);
 
-    const resolveSrc = useCallback((src) => {
-        if (!src) return "";
-        if (src.startsWith("http")) return src;
-        return (current?.path || "") + src;
-    }, [current?.path]);
-
     const markFailed = useCallback((realIndex) => {
         setFailedRealIndexes(prev => {
             if (prev.has(realIndex)) return prev;
@@ -238,39 +198,38 @@ function PlayerBackdrop({ player, isVisible, minimize, bgcolor }) {
                         info={item}
                         index={index}
                         itemHeight={itemHeightRef.current}
-                        videoRefs={videoRefs}
-                        resolveSrc={resolveSrc}
                         markFailed={markFailed}
                         fullscreen={fullscreen}
                         setFullScreen={setFullScreen}
+                        base={base}
+                        stop={item.type==="video"?!isPlaying:false}
                     />
                 ))}
             </div>
         </div>
     );
 }
-
 const FeedItem = React.memo(function FeedItem({
     info,
     index,
     itemHeight,
-    videoRefs,
-    resolveSrc,
     markFailed,
     fullscreen,
-    setFullScreen
+    setFullScreen,
+    base,
+    stop
 }) {
+
     const [isTall, setIsTall] = useState(null);
     const [hide, setHide] = useState(false);
+
     const toggle = useCallback(() => {
         setHide(true);
-        setTimeout(()=>{
-            setFullScreen((p)=>!p)
-            setTimeout(()=>{
-                setHide(false)
-            },30)
-        },110)
-    },[setFullScreen])
+        setTimeout(() => {
+            setFullScreen(p => !p);
+            setTimeout(() => setHide(false), 30);
+        }, 110);
+    }, [setFullScreen]);
 
     if (info.type === "fallback") {
         return <div className={styles.feedItem}>No media available</div>;
@@ -284,6 +243,12 @@ const FeedItem = React.memo(function FeedItem({
 
     const isReady = isTall !== null && !hide;
 
+    let mode = "cold";
+
+    if (distance > 3) mode = "cold";
+    else if (distance === 2 || distance === 3) mode = "warm";
+    else if (distance <= 1 && !fullscreen) mode = "hot";
+    else if (distance === 0 && fullscreen) mode = "focus";
 
     return (
         <div
@@ -294,54 +259,56 @@ const FeedItem = React.memo(function FeedItem({
                 transition: "transform 0.25s ease-out, opacity 0.25s ease-out"
             }}
         >
+
+            {/* ================= VIDEO ================= */}
             {info.type === "video" ? (
-                <video
-                    ref={(el) => {
-                        if (el) {
-                            videoRefs.current.set(info.virtualIndex, el);
-                        }
-                    }}
-                    className={`${`
+
+                <MediaVideo
+                    src={info.src}
+                    base={base}
+                    width={window.innerWidth}
+                    height={itemHeight}
+                    autoPlay={true}
+                    onClick={toggle}
+                    mode={mode}
+                    className={`
                         ${isTall ? styles.tallMedia : styles.normalMedia}
                         ${fullscreen ? styles.fullscreen : ""}
                         ${!isReady ? styles.loading : styles.ready}
-                    `}`}
-                    src={resolveSrc(info.src)}
-                    muted
-                    loop
-                    playsInline
-                    preload="metadata"
+                    `}
                     onLoadedMetadata={(e) => {
                         const v = e.target;
                         const tall = v.videoHeight > v.videoWidth;
                         setIsTall(prev => prev === tall ? prev : tall);
                     }}
-                    onError={() => markFailed(info.realIndex)}
-                    onClick={() => toggle()}
+                    pause={stop}
                 />
+
             ) : (
-                <img
-                    src={resolveSrc(info.src)}
-                    className={`${`
+
+                /* ================= IMAGE ================= */
+
+                <MediaImage
+                    src={info.src}
+                    base={base}
+                    onClick={toggle}
+                    className={`
                         ${isTall ? styles.tallMedia : styles.normalMedia}
                         ${fullscreen ? styles.fullscreen : ""}
                         ${!isReady ? styles.loading : styles.ready}
-                    `}`}
-                    alt=""
-                    loading="lazy"
+                    `}
                     onLoad={(e) => {
                         const img = e.target;
                         const tall = img.naturalHeight > img.naturalWidth;
                         setIsTall(prev => prev === tall ? prev : tall);
                     }}
-                    onError={() => markFailed(info.realIndex)}
-                    onClick={() => toggle()}
                 />
+
             )}
+
         </div>
     );
 });
-
 
 
 export default React.memo(PlayerBackdrop);

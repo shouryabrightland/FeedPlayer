@@ -3,6 +3,7 @@ import { useRef,useEffect } from "react";
 import { PlayBtn } from "../../components/sm_components";
 
 import PlayerStyles from "./player.module.css";
+import { MediaImage } from "../../components/mediaImage";
 
 
 
@@ -10,13 +11,12 @@ export default function CardPlayer({isVisible,setVisible, theme, player }) {
     if (!player.isActive) return;
     const toggle = player.toggle
     const song = player.current
-    const thumbnailUrl = song?.path + song?.thumbnail
     return (
         <div className={player.isActive && !isVisible ? PlayerStyles.outerPlayerCard : `${PlayerStyles.outerPlayerCard} ${PlayerStyles.min}`}
             style={{ '--bg': theme }}>
             <div className={PlayerStyles.playerCard}>
                 <div className={PlayerStyles.thumbnail}>
-                    <img src={thumbnailUrl} alt=""/>
+                    <MediaImage base={song?.path} src={song?.thumbnail} className={PlayerStyles.img} alt=""/>
                 </div>
                 <div className={PlayerStyles.info} onClick={()=>setVisible(true)}>
                     <div className={PlayerStyles.title}>{song?.title}</div>

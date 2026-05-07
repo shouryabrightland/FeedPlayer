@@ -79,7 +79,7 @@
     justify-content: start;
 }
 
-.coverArt.minimize .thumbnail>* {
+.coverArt.minimize .thumbnail .img {
     border-radius: 10px;
     box-shadow: 0 0 20px -2px black;
     position: absolute;
@@ -96,7 +96,7 @@
     overflow: hidden;
 }
 
-.coverArt .thumbnail>* {
+.coverArt .thumbnail .img {
     border-radius: 10px;
     box-shadow: 0 0 20px -2px black;
     position: absolute;
@@ -290,7 +290,7 @@
     justify-content: center;
 }
 
-.playerCard .thumbnail>* {
+.playerCard .thumbnail .img {
     border-radius: 10px;
     object-fit: cover;
     width: 100%;
@@ -376,9 +376,9 @@
     position: absolute;
     overflow: hidden;
     box-sizing: border-box;
-    /* display: flex;
+    display: flex;
     align-items: center;
-    justify-content: center; */
+    justify-content: center;
     will-change: transform;
     scroll-snap-align: start;
     scroll-snap-stop: always;
@@ -390,6 +390,9 @@
     height: 100%;
     overflow: hidden; */
 }
+.feedItem img,.feedItem video{
+    max-height: 100vh;
+}
 
 /*NORMAL (center crop)*/
 .normalMedia {
@@ -400,10 +403,12 @@
     will-change: transform;
     position: absolute;
     object-fit: contain;
-    top: 50%;
+    /* top: 50%;
     left: 50%;
-    transform: translate(-50%, -60%)translateZ(0);
+    transform: translate(-50%, -60%)translateZ(0); */
+    transform: translate(0,-10%) translateZ(0);
     transition: opacity 0.25s ease;
+    display: flex;
 }
 
 /* TALL (your custom rule) */
@@ -415,10 +420,12 @@
     box-shadow: 0 0 10px 0 black;
     will-change: transform;
     position: absolute;
-    top: 50%;
+    /* top: 50%;
     left: 50%;
-    transform: translate(-50%, -50%) translateZ(0);
+    transform: translate(-50%, -50%) translateZ(0); */
+    transform:translateZ(0);
     transition: opacity 0.1s ease;
+    display: flex;
 }
 .feedItem .fullscreen{
     object-fit: cover;

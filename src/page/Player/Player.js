@@ -10,6 +10,7 @@ import PlayerBackdrop from "./Backdrop"
 import PlayerStyles from "./player.module.css"
 import { PlayerControl, ProgressBar } from "./components";
 import { NO_IMAGE_URL } from "../../const";
+import { getImageURL, MediaImage } from "../../components/mediaImage";
 
 
 
@@ -20,7 +21,7 @@ export default function Player() {
     const [coverArtMinimize, setCoverArtMinimize] = useState(false);
     const [bg, setBg] = useState(null)
     const song = player.current;
-    const thumbnailUrl = song?.path + song?.thumbnail
+    const thumbnailUrl = getImageURL(song?.path,song?.thumbnail,50)
 
     useEffect(() => {
         if (!thumbnailUrl) return;
@@ -54,7 +55,7 @@ function CoverArt({ song, minimize, setMinimize }) {
     return (
         <div className={`${PlayerStyles.coverArt} ${minimize ? PlayerStyles.minimize : ""}`}>
             <div className={PlayerStyles.thumbnail}>
-                <img src={url} onClick={toggle} alt={""} />
+                <MediaImage className={PlayerStyles.img} base={song?.path} src={song?.thumbnail} onClick={toggle} alt={""} />
             </div>
         </div>
     )

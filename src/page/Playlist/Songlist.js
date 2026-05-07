@@ -1,6 +1,7 @@
 import React from "react";
 import { usePlayerCtx } from "../../core/PlayerProvider"
 import SongListStyles from "./SongList.module.css"
+import { MediaImage } from "../../components/mediaImage";
 
 export default React.memo(function SongList({ songs, playlist }) {
     const player = usePlayerCtx();
@@ -34,13 +35,12 @@ export default React.memo(function SongList({ songs, playlist }) {
 })
 
 function SongCard({ song, onClick, isActive,fallbackImgUrl}) {
-
+    console.log(song,"it's song card",song.path,song.thumbnail)
     return (
         <div className={`${SongListStyles.item} ${isActive ? SongListStyles.active : ""}`}
             onClick={onClick}>
             <div className={SongListStyles.side}>
-                <img src={song.path + song.thumbnail} 
-                onError={(e) => e.target.src = fallbackImgUrl} alt="" />
+                <MediaImage base={song.path} src={song.thumbnail} className=".img"  alt="" />
             </div>
             <div className={SongListStyles.header}>
                 <div className={SongListStyles.info}>
@@ -52,7 +52,7 @@ function SongCard({ song, onClick, isActive,fallbackImgUrl}) {
                     </div>
                 </div>
                 <div className={SongListStyles.options}>
-                    <svg role="img" className={SongListStyles.icon} viewBox="0 0 24 24">
+                    <svg className={SongListStyles.icon} viewBox="0 0 24 24">
                         <path d="M10.5 4.5a1.5 1.5 0 1 0 3 0 1.5 1.5 0 0 0-3 0m0 15a1.5 1.5 0 1 0 3 0 1.5 1.5 0 0 0-3 0m0-7.5a1.5 1.5 0 1 0 3 0 1.5 1.5 0 0 0-3 0"></path>
                     </svg>
                 </div>

@@ -184,7 +184,7 @@ async function _fetchPlaylist(id) {
             path: base,
             title: config.title || "",
             description: config.description || "",
-            thumbnail: resolveURL(base, config.thumbnail || "") || "",
+            thumbnail: config.thumbnail || "",
             songsUrl: resolveURL(base, config.songsUrl || "") || "",
             isvalid: true
         };

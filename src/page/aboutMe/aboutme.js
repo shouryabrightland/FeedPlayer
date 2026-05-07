@@ -1,3 +1,4 @@
+import { MediaImage } from "../../components/mediaImage";
 import { ABOUT_ME_IMAGE } from "../../const";
 import css from "./aboutMe.module.css";
 
@@ -26,7 +27,7 @@ function Meta() {
                         currently building my foundation in programming and working 
                         toward real-world AI projects.
                     </p>
-                    <img className={css.face} src={ABOUT_ME_IMAGE} alt="creator" />
+                    <MediaImage className={css.face} src={ABOUT_ME_IMAGE} alt="creator" />
                 </div>
             </div>
 

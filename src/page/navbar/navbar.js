@@ -2,6 +2,7 @@ import { useLocation, useNavigate } from "react-router-dom";
 import { HomeIcon, PlayListIcon } from "../../icons";
 import NavStyles from "./navbar.module.css";
 import { ABOUT_ME_IMAGE } from "../../const";
+import { MediaImage } from "../../components/mediaImage";
 
 export default function Navbar() {
     const location = useLocation();
@@ -32,7 +33,7 @@ export default function Navbar() {
                 className={`${NavStyles.item} ${isActive("/aboutMe") ? NavStyles.active : ""}`}
                 onClick={() => navigate("/aboutme")}
             >
-                <img className="icon" alt="" src={ABOUT_ME_IMAGE} style={{borderRadius:"50%"}}/>
+                <MediaImage className="icon" alt="" src={ABOUT_ME_IMAGE} image_style={{borderRadius:"50%"}}/>
                 About me
             </div>
 
