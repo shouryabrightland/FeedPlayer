@@ -1,15 +1,67 @@
-working Navbar 
-shareable
-like btn
-edit images for thumbnail
+Create AppState runtime.
+Implement Logger.
+Implement EventManager.
+Move all existing services into AppState.
+Remove React Context (PlayerProvider, PlaylistProvider).
+Replace useContext with app access.
+Add service lifecycle (init(), destroy()).
+Rewrite Player as a plain JS class.
+Rewrite PlaylistManager as a plain JS class.
+Add a centralized application settings service.
+Improve IndexedDB structure and API.
+Create a unified media model (Song, Image, Video, etc.).
+Create PlaylistBuilder.
+Design the playlist package format (.feed or similar).
+Implement playlist export.
+Implement playlist import.
+Add playlist validation and versioning.
+Add playlist thumbnail generation.
+Add media metadata extraction.
+Add media compression/optimization during export.
+Add media cache manager.
+Add asset preloading system.
+Add memory management for loaded media.
+Add queue management inside Player.
+Add shuffle, repeat, autoplay, resume.
+Add playback state machine.
+Add better error handling and recovery.
+Create a feed/session controller.
+Separate playback logic from rendering logic.
+Create a rendering abstraction (Renderer interface).
+Replace DOM renderer with Canvas renderer.
+Render images through Canvas.
+Render videos through Canvas.
+Move all gestures to the Canvas layer.
+Implement frame scheduler.
+Implement transition engine.
+Add animation engine.
+Add timeline system for media.
+Add overlay system (text, stickers, UI).
+Add visual effects pipeline.
+Add custom controls rendered on Canvas.
+Optimize rendering for low-end devices.
+Implement adaptive quality (resolution/FPS).
+Optimize decoding and texture reuse.
+Add background loading of upcoming media.
+Add plugin/extension support for future effects.
+Improve Builder UX (drag-drop, editing, preview).
+Improve Player UX (animations, gestures, transitions).
+Improve overall app navigation and polish.
+Add debugging tools (event inspector, state inspector, logs).
+Add automated testing for core services.
+Optimize startup time and memory usage.
+Prepare for first stable release.
 
-offline workable
-make download ux proper
-introduce dowmload properly
 
 
-- files to add
-family
-celebration
-screencast
-heavy / loss
+PRINCIPALS!!
+
+React is UI only.
+Business logic lives in services.
+Services communicate through events.
+Every service is independently testable.
+Media rendering is independent of React.
+Everything should work offline.
+Performance is prioritized over visual complexity.
+Every feature should scale to large playlists.
+Import/export should always be a first-class feature.

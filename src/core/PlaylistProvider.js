@@ -4,7 +4,9 @@ import { usePlaylists } from "./usePlaylists";
 const PlaylistContext = createContext(null);
 
 export function PlaylistProvider({ children }) {
+
     const store = usePlaylists();
+    
     return (
         <PlaylistContext.Provider value={store}>
             {children}
